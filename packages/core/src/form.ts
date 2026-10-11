@@ -6,7 +6,7 @@
  *
  * 边界：这里**只做字段进出**，不持久化、不拦截提交、不认端点 —— 草稿 / 防丢稿 / 鉴权全归宿主。
  */
-import type { EditorInstance, FormBindOptions } from "./types";
+import type { EditorInstance, FormBindOptions } from "./types.js";
 
 /** 适配器默认认的表单（CONTRACT §3）；找不到时回退「挂载点向上最近的 form」。 */
 export const FORM_SELECTOR = "form.editor-shell";

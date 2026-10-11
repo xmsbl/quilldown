@@ -6,7 +6,7 @@
  * 进大纲；一个标题都没有 → 整块 `hidden`。
  * 宿主只提供两样东西：`[data-editor-toc]`（容器）与 `data-editor-default-toc="1"`（默认开关）。
  */
-import type { EditorStrings } from "./strings";
+import type { EditorStrings } from "./strings.js";
 
 export interface TocHeading {
   level: number;

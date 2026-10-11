@@ -8,7 +8,7 @@
  * 一条纪律：**改值走 `execCommand("insertText")`，它进浏览器原生撤销栈**；`setRangeText` 只是
  * 兜底（它不发 `input`，撤销栈也不认 → 得手补一次 `input`，右侧预览才跟得上）。
  */
-import type { SplitStrings } from "./strings";
+import type { SplitStrings } from "./strings.js";
 
 /** 把 `[start, end)` 换成 `text`（`execCommand` 成功时浏览器自己会补 `input`）。 */
 export function replaceRange(

@@ -1,5 +1,5 @@
-import Prism from "./core";
-import "./components";
+import Prism from "./core.js";
+import "./components.js";
 
 /**
  * 库自带的那份 Prism（语言集见 `PRISM_LANGUAGES`）。

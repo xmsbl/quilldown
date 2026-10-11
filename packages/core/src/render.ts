@@ -1,9 +1,9 @@
 import { Marked, type Renderer, type RendererObject, type Token, type Tokens } from "marked";
 
-import { escapeHtml, htmlToText } from "./html";
-import { prismGrammar } from "./languages";
-import Prism from "./prism";
-import { createSlugger } from "./slug";
+import { escapeHtml, htmlToText } from "./html.js";
+import { prismGrammar } from "./languages.js";
+import Prism from "./prism/index.js";
+import { createSlugger } from "./slug.js";
 
 /** 自定义语法高亮（默认走内置 Prism）；返回 `undefined` = 交给默认转义（= 不高亮） */
 export type Highlight = (code: string, language: string) => string | undefined;

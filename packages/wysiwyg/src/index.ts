@@ -8,6 +8,6 @@
 export { CONTRACT_VERSION } from "@quilldown/core";
 export type { EditorInstance, EditorOptions, UploadFn } from "@quilldown/core";
 
-export { create, type WysiwygOptions } from "./create";
-export { BUILTIN_STRINGS, resolveStrings, type EditorStrings } from "./strings";
-export { scanHeadings, stripInline, type TocHeading } from "./toc";
+export { create, type WysiwygOptions } from "./create.js";
+export { BUILTIN_STRINGS, resolveStrings, type EditorStrings } from "./strings.js";
+export { scanHeadings, stripInline, type TocHeading } from "./toc.js";

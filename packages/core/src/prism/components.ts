@@ -1,4 +1,4 @@
-import "./core";
+import "./core.js";
 
 // ③ 官方语言组件 —— 静态 import 的**书写顺序即求值顺序**（`./core` 已把全局换成我们那份 Prism 实例）。
 // 依赖方向：csharp ← clike、typescript ← javascript、markdown ← markup —— 上面三者由 prismjs 本体提供，

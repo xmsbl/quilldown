@@ -1,6 +1,6 @@
 import type { Grammar } from "prismjs";
 
-import Prism from "./prism";
+import Prism from "./prism/index.js";
 
 /**
  * 语言集**冻结**（护栏在 `test/languages.test.ts`：本表 === 实际加载到的语法）。

@@ -16,10 +16,10 @@ import type {
 
 import { EdodoWrite } from "../vendor/edodo/standalone.js";
 import type { EdodoContext, EdodoPlugin, EdodoSelectionInfo } from "../vendor/edodo/standalone.js";
-import { bindKeys } from "./keys";
-import { bindPlaceholder } from "./placeholder";
-import { resolveStrings } from "./strings";
-import { setupToc, type TocHandle } from "./toc";
+import { bindKeys } from "./keys.js";
+import { bindPlaceholder } from "./placeholder.js";
+import { resolveStrings } from "./strings.js";
+import { setupToc, type TocHandle } from "./toc.js";
 
 /** 每次变更算 HTML 的去抖（edodo 内建 120ms 去抖已挡掉连打；这里再挡一层渲染成本）。 */
 const DEFAULT_DEBOUNCE_MS = 300;

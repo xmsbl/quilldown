@@ -4,15 +4,15 @@
  * 硬规则：本包是**唯一**产出落库 HTML 的地方（marked GFM + Prism）；
  * 编辑器包只产出 markdown，落库 HTML 一律走 {@link renderHtml}。
  */
-export { CONTRACT_VERSION } from "./contract";
+export { CONTRACT_VERSION } from "./contract.js";
 export {
   bindForm,
   FORM_SELECTOR,
   HTML_FIELD_SELECTOR,
   MD_FIELD_SELECTOR,
   type FormBinding,
-} from "./form";
-export { PRISM_LANGUAGES, prismGrammar, type PrismLanguage } from "./languages";
+} from "./form.js";
+export { PRISM_LANGUAGES, prismGrammar, type PrismLanguage } from "./languages.js";
 export {
   renderDocument,
   renderHtml,
@@ -20,7 +20,7 @@ export {
   type LineAnchor,
   type RenderedDocument,
   type RenderOptions,
-} from "./render";
+} from "./render.js";
 export type {
   EditorCreate,
   EditorInstance,
@@ -29,4 +29,4 @@ export type {
   FormField,
   RenderHtml,
   UploadFn,
-} from "./types";
+} from "./types.js";

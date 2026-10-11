@@ -18,10 +18,10 @@
 import { bindForm, renderDocument } from "@quilldown/core";
 import type { EditorInstance, EditorOptions, FormBinding, LineAnchor } from "@quilldown/core";
 
-import { createIcon } from "./icons";
-import { createScrollSync, writeLineAnchors } from "./scroll-sync";
-import { resolveStrings } from "./strings";
-import { TOOLBAR_ACTIONS, insertImage, prefixLines, type ToolbarAction } from "./toolbar";
+import { createIcon } from "./icons.js";
+import { createScrollSync, writeLineAnchors } from "./scroll-sync.js";
+import { resolveStrings } from "./strings.js";
+import { TOOLBAR_ACTIONS, insertImage, prefixLines, type ToolbarAction } from "./toolbar.js";
 
 /** 预览刷新 + `onChange` 的去抖（= ByteMD 的 `previewDebounce` 默认值）。 */
 const DEFAULT_DEBOUNCE_MS = 300;

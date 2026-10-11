@@ -9,7 +9,12 @@
 export { CONTRACT_VERSION } from "@quilldown/core";
 export type { EditorInstance, EditorOptions, UploadFn } from "@quilldown/core";
 
-export { create, type SplitOptions } from "./create";
-export { BUILTIN_STRINGS, resolveStrings, type SplitStrings } from "./strings";
-export { interpolateMap, writeLineAnchors, type AnchorPoint, type ScrollSync } from "./scroll-sync";
-export { TOOLBAR_ACTIONS, type ToolbarAction } from "./toolbar";
+export { create, type SplitOptions } from "./create.js";
+export { BUILTIN_STRINGS, resolveStrings, type SplitStrings } from "./strings.js";
+export {
+  interpolateMap,
+  writeLineAnchors,
+  type AnchorPoint,
+  type ScrollSync,
+} from "./scroll-sync.js";
+export { TOOLBAR_ACTIONS, type ToolbarAction } from "./toolbar.js";

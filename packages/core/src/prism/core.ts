@@ -1,4 +1,4 @@
-import "./seed";
+import "./seed.js";
 
 import Prism from "prismjs";
 
