@@ -1,7 +1,15 @@
 name: Release
 
 # 发车口径：三个发布包共用一个 tag（`v0.1.0`），推上来即发布。
-# 前置：仓库 Secrets 里配 `NPM_TOKEN`（npm Automation token，packages 写权限）。
+# 认证 = **npm trusted publishing（OIDC）**，**不需要任何 Secret**：
+#   前置（每个包一次性，只有包已存在于 registry 才能配）：
+#     npmjs.com → 包 → Settings → Trusted publishing → GitHub Actions，
+#     填 xmsbl / quilldown / release.yml；**配置创建后 2 天内必须完成首次成功发布**，否则过期。
+#   首发只能手工做（包还不存在 → 配不了 trusted publisher）：
+#     `npm login && npm publish --workspaces --access public`
+#   备选认证 = Granular access token（legacy / Automation token 已于 2025-11 移除）：
+#     存成 Secrets 的 `NPM_TOKEN` + 下面的 env 打开；token 必须 **Read and write（publish and stage）**
+#     且 **Bypass 2FA = true**，否则 `npm publish` 报 `E_STAGE_REQUIRED`（只允许 stage）。
 on:
   push:
     tags: ["v*"]
@@ -11,25 +19,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # npm --provenance 需要
+      id-token: write # OIDC：trusted publishing + provenance 都靠它
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-          cache: npm
+          node-version: "24" # trusted publishing 要 Node >= 22.14
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false # 发布构建不缓存
 
       - run: npm ci
 
-      # tag 与包版本必须一致 —— 不一致时 npm 直接报错，但报的是"already published"这类误导信息
+      - name: 校验 npm 版本（trusted publishing 需要 >= 11.5.1）
+        run: node -e "const [a,b]=require('node:child_process').execSync('npm -v').toString().trim().split('.').map(Number); if (a<11 || (a===11 && b<5)) { console.error('npm 版本过低'); process.exit(1) }"
+
+      # tag 与包版本必须一致 —— 不一致时 npm 报的是"already published"这类误导信息
       - name: 校验 tag 与包版本一致
         run: test "v$(node -p "require('./packages/core/package.json').version")" = "$GITHUB_REF_NAME"
 
       - run: npm run ci
 
-      # --workspaces 跳过 private（host-example）；--provenance 需要上面的 id-token
-      - run: npm publish --workspaces --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # --workspaces 跳过 private（host-example）；provenance 由 OIDC 自动生成（公开仓 + 公开包）
+      - run: npm publish --workspaces --access public

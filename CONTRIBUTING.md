@@ -33,10 +33,22 @@
 1. 改三个 `packages/*/package.json` 的 `version`（semver，当前线 `0.x`；契约版本另算，见 `CONTRACT.md` §5）。
 2. 本地 `npm run ci` 全绿（`lint:pkg` 会走真 `npm pack` 体检）。
 3. `npm i` 刷新 `package-lock.json`（内部依赖范围写 `^0.x.0`，靠 workspaces 本地链接）。
-4. 推 tag `v0.x.0` → `.github/workflows/release.yml` 跑 `npm publish --workspaces --access public --provenance`。
-   · 前置：仓库 Secrets 配 `NPM_TOKEN`（npm Automation token，写权限）。
-   · provenance 需要**公开**仓库 + `id-token: write`；仓库不公开时去掉 `--provenance`。
-5. 手工首发（没配 CI 时）：`npm login` 后 `npm publish --workspaces --access public`。
-   · 发布顺序：`core` 先（另两个依赖它）；`npm publish --workspaces` 已按拓扑排序。
+4. 推 tag `v0.x.0` → `.github/workflows/release.yml` 跑 `npm publish --workspaces --access public`
+   （`--workspaces` 跳过 `private` 的 `host-example`，并按拓扑序先发 `core`）。
+
+### 认证（2025-11 起只剩两条路，legacy / Automation token 已移除）
+
+- **trusted publishing（首选）**：npmjs.com → 包 → Settings → Trusted publishing → GitHub Actions，
+  填 `xmsbl` / `quilldown` / `release.yml`。要求 **npm CLI ≥ 11.5.1 + Node ≥ 22.14 + 公开仓**；
+  OIDC 自动换取短期发布令牌，provenance 也自动生成（不用写 `--provenance`），**不需要任何 Secret**。
+  · ⚠ **首发只能手工**：包在 registry 上还不存在 → 配不了 trusted publisher。
+  · ⚠ 配置建好后 **2 天内必须完成首次成功发布**，否则过期（只能删掉重建）。
+  · ⚠ 发布时校验 `repository.url` 与仓库一致（本仓已填 `git+https://github.com/xmsbl/quilldown.git`）。
+- **Granular access token（备选）**：建 token 时选 **Read and write（publish and stage）** +
+  **Bypass 2FA = true**；否则 `npm publish` 报 `E_STAGE_REQUIRED`（那种 token 只能 `npm stage publish`，
+  要维护者二次 2FA 批准）。存成仓库 Secrets 的 `NPM_TOKEN`，并在 workflow 里补 `env: NODE_AUTH_TOKEN`。
+
+首发（手工，一次性）：`npm login` → `npm publish --workspaces --access public`。
+发完之后建议在包设置里选 **Require two-factor authentication and disallow tokens**。
 
 **纯 ESM**：三个包都只出 `import` 条件（无 CJS 产物），这是有意的 —— CJS 消费者用动态 `import()`。
