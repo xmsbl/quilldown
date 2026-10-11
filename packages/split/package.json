@@ -1,6 +1,6 @@
 {
   "name": "@xmsbl/quilldown-split",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Split Markdown editor (source + preview, with scroll sync).",
   "license": "MIT",
   "author": "chengshy123 <88560859@qq.com>",

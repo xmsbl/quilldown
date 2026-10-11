@@ -1,6 +1,6 @@
 {
   "name": "@xmsbl/quilldown-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Contract constants + the single Markdown-to-HTML render pipeline.",
   "license": "MIT",
   "author": "chengshy123 <88560859@qq.com>",
