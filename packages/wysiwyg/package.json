@@ -1,6 +1,6 @@
 {
   "name": "@xmsbl/wysiwyg",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "WYSIWYG Markdown editor (contenteditable, edodo-write based).",
   "license": "MIT",
   "author": "chengshy123 <88560859@qq.com>",
