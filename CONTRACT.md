@@ -7,7 +7,7 @@
 
 ## 1. 硬规则
 
-- `@xmsbl/core` 是**唯一**产出 HTML 的地方（marked GFM + Prism 语言集）。编辑器包只产出 markdown。
+- `@xmsbl/quilldown-core` 是**唯一**产出 HTML 的地方（marked GFM + Prism 语言集）。编辑器包只产出 markdown。
   「两编辑器产出逐字节一致」由代码结构保证，不靠自律。
 - 库**不假设**宿主：不认 Razor / htmx / 固定端点 / CSS 框架 / 全局状态。
   只认三件事：**DOM 挂载点** + **markdown 进出** + **注入回调**。
@@ -55,14 +55,14 @@ interface EditorInstance {
 function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
 ```
 
-- ESM：`import { create } from "@xmsbl/wysiwyg"`。
+- ESM：`import { create } from "@xmsbl/quilldown-wysiwyg"`。
 - IIFE：**每包一个独立全局名**（互不覆盖）—— `window.QuilldownCore` / `window.QuilldownWysiwyg`
   / `window.QuilldownSplit`。
 - **locale 分两半**（同一选项 `locale`，两种机制）：库**自有**文案（占位 / 大纲标签）走运行时
-  `locale`；edodo **内建**文案上游没有 i18n 接口 → **构建期**烤进产物 → `@xmsbl/wysiwyg`
-  一个 locale 一份（默认 en；zh 见子路径出口 `@xmsbl/wysiwyg/zh` 与 `dist/index.iife.zh.js`）。
+  `locale`；edodo **内建**文案上游没有 i18n 接口 → **构建期**烤进产物 → `@xmsbl/quilldown-wysiwyg`
+  一个 locale 一份（默认 en；zh 见子路径出口 `@xmsbl/quilldown-wysiwyg/zh` 与 `dist/index.iife.zh.js`）。
 - **core 外置**：IIFE 产物取全局 `QuilldownCore`（宿主先引 core），不把 marked / Prism 打进来两遍。
-- **样式是独立入口**：`@xmsbl/wysiwyg/index.css` / `@xmsbl/split/index.css`。库**不**在运行时
+- **样式是独立入口**：`@xmsbl/quilldown-wysiwyg/index.css` / `@xmsbl/quilldown-split/index.css`。库**不**在运行时
   注入 CSS（JS 入口也不 import 它 —— `sideEffects: false` 的包被宿主打包时 CSS import 会被整段摇掉）。
 
 ## 3. DOM 契约（宿主标记，库消费）

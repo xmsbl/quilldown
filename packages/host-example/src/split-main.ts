@@ -5,9 +5,9 @@
  * 与 `main.ts`（wysiwyg）**同一份宿主契约**：DOM 标记 + 注入回调各一份，字段镜像仍由库的
  * 表单适配器做（`mirror` 默认开）。两页并排放着，就是「一款编辑器换另一款，宿主这半不用动」的证明。
  */
-import "@xmsbl/split/index.css";
+import "@xmsbl/quilldown-split/index.css";
 
-import { create } from "@xmsbl/split";
+import { create } from "@xmsbl/quilldown-split";
 
 import "./styles.css";
 
@@ -39,7 +39,7 @@ const initial = [
   "# Split editor",
   "",
   "左边写 markdown，右边立刻出 HTML —— **滚动任意一栏，另一栏跟着走**。",
-  "预览与落库的 HTML 是**同一份**（都由 `@xmsbl/core` 产出），所以保存时不会「预览好看、落库变形」。",
+  "预览与落库的 HTML 是**同一份**（都由 `@xmsbl/quilldown-core` 产出），所以保存时不会「预览好看、落库变形」。",
   "",
   "## 工具条",
   "",
@@ -60,8 +60,8 @@ const initial = [
   "",
   "| 能力 | 归属 |",
   "| --- | --- |",
-  "| md → html | `@xmsbl/core`（唯一产出者） |",
-  "| 滚动同步 | `@xmsbl/split` |",
+  "| md → html | `@xmsbl/quilldown-core`（唯一产出者） |",
+  "| 滚动同步 | `@xmsbl/quilldown-split` |",
   "| 字段镜像 | core 的表单适配器 |",
   "",
   "- [x] 两栏同步滚动",

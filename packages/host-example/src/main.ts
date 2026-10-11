@@ -4,9 +4,9 @@
  * 宿主这半只写 DOM 标记与注入回调 —— **字段镜像由库的表单适配器做**（`mirror` 默认开，
  * 见 CONTRACT §4）；想自己接管就 `mirror: false` 改用 `getMarkdown()` / `getHtml()`。
  */
-import "@xmsbl/wysiwyg/index.css";
+import "@xmsbl/quilldown-wysiwyg/index.css";
 
-import { create } from "@xmsbl/wysiwyg";
+import { create } from "@xmsbl/quilldown-wysiwyg";
 
 import "./styles.css";
 

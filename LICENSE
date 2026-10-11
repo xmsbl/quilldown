@@ -24,6 +24,6 @@ SOFTWARE.
 
 Third-party notice
 
-`@xmsbl/wysiwyg` is derived from edodo-write (MIT License, Copyright (c)
+`@xmsbl/quilldown-wysiwyg` is derived from edodo-write (MIT License, Copyright (c)
 2026 vivmagarwal). Its license text is redistributed alongside the built
 artifact as required by the MIT License.

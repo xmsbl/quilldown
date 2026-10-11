@@ -1,7 +1,7 @@
 /**
  * host-example 的**宿主样式**：页级布局 + 暗色。
  *
- * 库自己的样式（`@xmsbl/wysiwyg/index.css`）颜色只认 `--qd-*`；edodo 本体认它自己的
+ * 库自己的样式（`@xmsbl/quilldown-wysiwyg/index.css`）颜色只认 `--qd-*`；edodo 本体认它自己的
  * `--ew-*`。两者都由宿主这一层映射 —— 库不假设任何主题。
  */
 :root {

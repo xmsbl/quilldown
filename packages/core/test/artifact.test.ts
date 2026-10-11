@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  *    rollup 会把 `import "prismjs/components/..."` 整段摇掉（代码块静默不高亮，单测看不出来）；
  * ② `Prism.manual` 预置必须**先于** prismjs 求值 —— 否则 prism 会在 DOMContentLoaded 扫全站做自动高亮
  *    （库该做的只是「给你字符串 → 还你 HTML」，不碰宿主 DOM）。
- * 需要先 `npm run build -w @xmsbl/core`（根 CI 已把 build 排在 test 前）。
+ * 需要先 `npm run build -w @xmsbl/quilldown-core`（根 CI 已把 build 排在 test 前）。
  */
 const ARTIFACT = new URL("../dist/index.iife.js", import.meta.url);
 
@@ -18,7 +18,9 @@ function loadArtifact() {
   try {
     source = readFileSync(ARTIFACT, "utf8");
   } catch {
-    throw new Error("产物不在：先跑 `npm run build -w @xmsbl/core`（根 CI 的顺序是 build → test）");
+    throw new Error(
+      "产物不在：先跑 `npm run build -w @xmsbl/quilldown-core`（根 CI 的顺序是 build → test）",
+    );
   }
 
   const counters = { scheduled: 0, scanned: 0 };

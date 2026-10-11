@@ -1,5 +1,5 @@
 /**
- * `@xmsbl/wysiwyg` 自带样式 —— 库自有的 UI 增强（大纲 / 焦点 / IME 占位 / 块手柄 / 插入符）。
+ * `@xmsbl/quilldown-wysiwyg` 自带样式 —— 库自有的 UI 增强（大纲 / 焦点 / IME 占位 / 块手柄 / 插入符）。
  *
  * 包装两层：
  *  · `vendor/edodo/edodo-write.css`（编辑器本体 `.ew-*`）—— 构建时拼在本文件**之前**，

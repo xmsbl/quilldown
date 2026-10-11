@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  *    marked / Prism 不许被打第二遍 —— 否则宿主页面里跑两套词法器（体积翻倍、token 类名可能不一致）。
  * ② 全局名固定 `QuilldownSplit`（CONTRACT §2：每包一个独立全局名，互不覆盖）。
  *
- * 需要先 `npm run build -w @xmsbl/split`（根 CI 已把 build 排在 test 前）。
+ * 需要先 `npm run build -w @xmsbl/quilldown-split`（根 CI 已把 build 排在 test 前）。
  */
 const ARTIFACT = new URL("../dist/index.iife.js", import.meta.url);
 
@@ -18,7 +18,7 @@ function read(): string {
     return readFileSync(ARTIFACT, "utf8");
   } catch {
     throw new Error(
-      "产物不在：先跑 `npm run build -w @xmsbl/split`（根 CI 的顺序是 build → test）",
+      "产物不在：先跑 `npm run build -w @xmsbl/quilldown-split`（根 CI 的顺序是 build → test）",
     );
   }
 }

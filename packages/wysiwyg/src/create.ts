@@ -1,12 +1,18 @@
 /**
  * `create(mount, opts)` —— 契约 §2 的工厂（所见即所得）。
  *
- * 分工（CONTRACT §1）：编辑器只产出 markdown；**落库 HTML 恒由 `@xmsbl/core` 的
+ * 分工（CONTRACT §1）：编辑器只产出 markdown；**落库 HTML 恒由 `@xmsbl/quilldown-core` 的
  * `renderHtml` 产出** —— 所以 `getHtml()` 与 split 逐个字节一致，宿主也只需一套 sanitize。
  * 库不持久化任何东西：草稿 / 防丢稿 / 提交拦截归宿主，这里只暴露 `isDirty()` + 事件。
  */
-import { bindForm, renderHtml as coreRenderHtml } from "@xmsbl/core";
-import type { EditorInstance, EditorOptions, FormBinding, RenderHtml, UploadFn } from "@xmsbl/core";
+import { bindForm, renderHtml as coreRenderHtml } from "@xmsbl/quilldown-core";
+import type {
+  EditorInstance,
+  EditorOptions,
+  FormBinding,
+  RenderHtml,
+  UploadFn,
+} from "@xmsbl/quilldown-core";
 
 import { EdodoWrite } from "../vendor/edodo/standalone.js";
 import type { EdodoContext, EdodoPlugin, EdodoSelectionInfo } from "../vendor/edodo/standalone.js";
