@@ -2,6 +2,11 @@
 
 > **Status: best-effort personal project. Contributions welcome, no SLA.**
 
+[![npm @quilldown/core](https://img.shields.io/npm/v/@quilldown/core?label=%40quilldown%2Fcore)](https://www.npmjs.com/package/@quilldown/core)
+[![npm @quilldown/wysiwyg](https://img.shields.io/npm/v/@quilldown/wysiwyg?label=%40quilldown%2Fwysiwyg)](https://www.npmjs.com/package/@quilldown/wysiwyg)
+[![npm @quilldown/split](https://img.shields.io/npm/v/@quilldown/split?label=%40quilldown%2Fsplit)](https://www.npmjs.com/package/@quilldown/split)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+
 Host-agnostic Markdown editors that share one render pipeline. Two editors, one contract:
 
 | 包                        | 发布 | 作用                                                         |
@@ -14,6 +19,31 @@ Host-agnostic Markdown editors that share one render pipeline. Two editors, one 
 库不假设宿主：不认 Razor / htmx / 固定端点 / CSS 框架，只认「DOM 挂载点 + markdown 进出 + 注入回调」。
 契约定案见 [`CONTRACT.md`](./CONTRACT.md)。
 
+## 安装（npm）
+
+三个包都是**纯 ESM**（`type: module`，只出 `import` 条件；CJS 消费者请用动态 `import()`）。
+包版本按 semver 走 `0.x`，**与契约版本解耦**（契约 v1 见 `CONTRACT.md` 与 `CONTRACT_VERSION`）。
+
+```bash
+# 只要渲染管线（marked GFM + Prism，自足单文件）
+npm i @quilldown/core
+
+# 编辑器（自带 core 依赖）；样式是包内子路径，不单独装包
+npm i @quilldown/wysiwyg
+npm i @quilldown/split
+```
+
+```ts
+import "@quilldown/wysiwyg/index.css"; // 或 "@quilldown/split/index.css"
+```
+
+不走打包器的宿主可直接引 IIFE 产物（`unpkg` / `jsdelivr` 字段已填）：
+
+```html
+<script src="https://unpkg.com/@quilldown/core/dist/index.iife.js"></script>
+<script src="https://unpkg.com/@quilldown/wysiwyg/dist/index.iife.zh.js"></script>
+```
+
 ## 快速开始（库仓开发）
 
 要求 Node LTS（`>=20`）。
@@ -24,7 +54,7 @@ npm run ci      # lint + format:check + build + typecheck + test（与 CI 同口
 ```
 
 单项：`npm run lint` · `npm run typecheck` · `npm run test` · `npm run build` · `npm run format`；
-只重建 core：`npm run build:core`。
+只重建 core：`npm run build:core`；发布前体检：`npm run lint:pkg`（publint + are-the-types-wrong）。
 **顺序不能换**：跨包类型走的是各包 `dist` 的 `d.ts`（消费者视角，dist 不入库），而 core 有一条
 **产物**守卫直接读 `dist/index.iife.js`。
 

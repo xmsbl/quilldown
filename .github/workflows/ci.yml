@@ -23,3 +23,12 @@ jobs:
       # build 在 test 前：core 的产物守卫读 dist/index.iife.js
       - run: npm run build
       - run: npm run test
+      # 发布前体检（publint + attw）也要真产物 → 排在 build 之后
+      - run: npm run lint:pkg
+
+      # 产物存档：不发布也能拿到三个包的 dist（含 IIFE 与 .d.ts）
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quilldown-dist
+          path: packages/*/dist
+          if-no-files-found: error

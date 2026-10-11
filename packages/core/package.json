@@ -1,10 +1,19 @@
 {
   "name": "@quilldown/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Contract constants + the single Markdown-to-HTML render pipeline.",
   "license": "MIT",
+  "author": "chengshy123 <88560859@qq.com>",
+  "keywords": [
+    "markdown",
+    "marked",
+    "prismjs",
+    "syntax-highlighting",
+    "renderer"
+  ],
   "type": "module",
   "comment:sideEffects": "不能标 false：本包入口有真副作用（加载 Prism 语言组件 + 挂 globalThis.Prism）。标了 false 时 rollup 会把 `import \"prismjs/components/...\"` 整段摇掉 → 代码块静默不高亮（实测过）。",
+  "sideEffects": true,
   "files": [
     "dist"
   ],

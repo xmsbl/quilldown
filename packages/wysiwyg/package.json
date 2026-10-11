@@ -1,10 +1,18 @@
 {
   "name": "@quilldown/wysiwyg",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "WYSIWYG Markdown editor (contenteditable, edodo-write based).",
   "license": "MIT",
+  "author": "chengshy123 <88560859@qq.com>",
+  "keywords": [
+    "markdown",
+    "editor",
+    "wysiwyg",
+    "contenteditable"
+  ],
   "type": "module",
   "comment:sideEffects": "不能标 false：vendored 的 edodo 原件里一堆顶层定义（插件表 / 指令表）参与副作用分析，标了会被摇掉。",
+  "sideEffects": true,
   "files": [
     "dist"
   ],
@@ -29,7 +37,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@quilldown/core": "^0.0.0"
+    "@quilldown/core": "^0.1.0"
   },
   "scripts": {
     "build": "node scripts/build.mjs",

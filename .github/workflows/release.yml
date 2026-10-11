@@ -1,0 +1,35 @@
+name: Release
+
+# 发车口径：三个发布包共用一个 tag（`v0.1.0`），推上来即发布。
+# 前置：仓库 Secrets 里配 `NPM_TOKEN`（npm Automation token，packages 写权限）。
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm --provenance 需要
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      # tag 与包版本必须一致 —— 不一致时 npm 直接报错，但报的是"already published"这类误导信息
+      - name: 校验 tag 与包版本一致
+        run: test "v$(node -p "require('./packages/core/package.json').version")" = "$GITHUB_REF_NAME"
+
+      - run: npm run ci
+
+      # --workspaces 跳过 private（host-example）；--provenance 需要上面的 id-token
+      - run: npm publish --workspaces --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

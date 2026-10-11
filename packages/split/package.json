@@ -1,8 +1,15 @@
 {
   "name": "@quilldown/split",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Split Markdown editor (source + preview, with scroll sync).",
   "license": "MIT",
+  "author": "chengshy123 <88560859@qq.com>",
+  "keywords": [
+    "markdown",
+    "editor",
+    "split-view",
+    "preview"
+  ],
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -25,7 +32,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@quilldown/core": "^0.0.0"
+    "@quilldown/core": "^0.1.0"
   },
   "scripts": {
     "build": "vite build",
