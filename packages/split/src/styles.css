@@ -1,0 +1,305 @@
+/**
+ * `@quilldown/split` 自带样式 —— 分屏的壳（工具条 / 两栏）+ 预览正文的基础排版。
+ *
+ * 三条纪律（与 `@quilldown/wysiwyg` 一致）：
+ *  · 颜色只走 `--qd-*`（每个使用处带默认值）—— 宿主接自己的调色板就覆盖这几个变量；
+ *  · **不写 `@layer`**：分层是宿主的决定（宿主可整包塞进自己的层，见 CONTRACT §1）；
+ *  · scope 只落在契约标记 `[data-editor-mount]` 上，不碰宿主其它元素。
+ *
+ * 高度由宿主给：`--qd-split-height`（默认 560px）。滚动同步要求两栏**各自是滚动盒**，
+ * 所以这里钉死高度 + `overflow:auto`；宿主想撑满视口就覆盖这个变量。
+ */
+
+:where([data-editor-mount]) {
+  --qd-fg: #1f2328;
+  --qd-fg-muted: #6b7280;
+  --qd-bg: #ffffff;
+  --qd-bg-subtle: #f6f7f8;
+  --qd-border: #e6e8eb;
+  --qd-border-strong: #cfd4da;
+  --qd-accent: #0f766e;
+  --qd-shadow: 0 8px 24px rgb(15 23 42 / 12%);
+  --qd-duration: 150ms;
+
+  --qd-split-height: 560px;
+  --qd-split-radius: 10px;
+  --qd-split-font: ui-monospace, sfmono-regular, menlo, consolas, "liberation mono", monospace;
+}
+
+/* ── 壳 ─────────────────────────────────────────────────────────────────────── */
+[data-editor-mount] .editor-split {
+  display: flex;
+  flex-direction: column;
+  height: var(--qd-split-height);
+  min-height: 240px;
+  overflow: hidden;
+  color: var(--qd-fg);
+  background: var(--qd-bg);
+  border: 1px solid var(--qd-border);
+  border-radius: var(--qd-split-radius);
+}
+
+[data-editor-mount] .editor-split-panes {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0; /* 没有它 flex 子项不肯滚动 */
+}
+
+[data-editor-mount] .editor-split-pane {
+  flex: 1 1 50%;
+  min-width: 0;
+  overflow: auto;
+  position: relative;
+}
+
+[data-editor-mount] .editor-split[data-qd-mode="split"] .editor-split-write {
+  border-right: 1px solid var(--qd-border);
+}
+
+/* 单栏版式：只留当前那一栏（页签自己带 `is-active`） */
+[data-editor-mount] .editor-split[data-qd-mode="tab"][data-qd-tab="write"] .editor-split-preview,
+[data-editor-mount] .editor-split[data-qd-mode="tab"][data-qd-tab="preview"] .editor-split-write {
+  display: none;
+}
+
+/* ── 工具条 ─────────────────────────────────────────────────────────────────── */
+[data-editor-mount] .editor-split-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 6px;
+  background: var(--qd-bg-subtle);
+  border-bottom: 1px solid var(--qd-border);
+}
+
+[data-editor-mount] .editor-split-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--qd-fg-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background var(--qd-duration) ease,
+    color var(--qd-duration) ease;
+}
+
+[data-editor-mount] .editor-split-btn:hover,
+[data-editor-mount] .editor-split-btn:focus-visible {
+  color: var(--qd-accent);
+  background: var(--qd-bg);
+}
+
+[data-editor-mount] .editor-split-heading {
+  height: 28px;
+  margin-right: 4px;
+  padding: 0 22px 0 8px;
+  color: var(--qd-fg-muted);
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid var(--qd-border);
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentcolor 50%),
+    linear-gradient(135deg, currentcolor 50%, transparent 50%);
+  background-position:
+    right 13px center,
+    right 8px center;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* 单栏版式的写/预览页签（双栏时整块不出现） */
+[data-editor-mount] .editor-split-tabs {
+  display: none;
+  margin-left: auto;
+  gap: 2px;
+  padding: 2px;
+  background: var(--qd-bg);
+  border: 1px solid var(--qd-border);
+  border-radius: 8px;
+}
+
+[data-editor-mount] .editor-split[data-qd-mode="tab"] .editor-split-tabs {
+  display: inline-flex;
+}
+
+[data-editor-mount] .editor-split-tab {
+  padding: 3px 10px;
+  color: var(--qd-fg-muted);
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+[data-editor-mount] .editor-split-tab.is-active {
+  color: var(--qd-accent);
+  background: var(--qd-bg-subtle);
+}
+
+/* ── 左栏：源码 ─────────────────────────────────────────────────────────────── */
+[data-editor-mount] .editor-split-source {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--qd-fg);
+  font-family: var(--qd-split-font);
+  font-size: 14px;
+  line-height: 1.7;
+  tab-size: 2;
+  background: transparent;
+  border: 0;
+  resize: none;
+  outline: none;
+}
+
+/* ── 右栏：预览 ─────────────────────────────────────────────────────────────── */
+[data-editor-mount] .editor-split-body {
+  padding: 14px 16px;
+  font-size: 15px;
+  line-height: 1.75;
+  word-wrap: break-word;
+}
+
+[data-editor-mount] .editor-split-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--qd-fg-muted);
+  font-size: 14px;
+}
+
+[data-editor-mount] .editor-split-empty[hidden] {
+  display: none;
+}
+
+[data-editor-mount] .editor-split-body > :first-child {
+  margin-top: 0;
+}
+
+[data-editor-mount] .editor-split-body h1,
+[data-editor-mount] .editor-split-body h2,
+[data-editor-mount] .editor-split-body h3,
+[data-editor-mount] .editor-split-body h4,
+[data-editor-mount] .editor-split-body h5,
+[data-editor-mount] .editor-split-body h6 {
+  margin: 1.4em 0 0.6em;
+  line-height: 1.3;
+}
+
+[data-editor-mount] .editor-split-body h1 {
+  font-size: 1.7em;
+}
+
+[data-editor-mount] .editor-split-body h2 {
+  font-size: 1.4em;
+}
+
+[data-editor-mount] .editor-split-body h3 {
+  font-size: 1.2em;
+}
+
+[data-editor-mount] .editor-split-body p,
+[data-editor-mount] .editor-split-body ul,
+[data-editor-mount] .editor-split-body ol,
+[data-editor-mount] .editor-split-body blockquote,
+[data-editor-mount] .editor-split-body table {
+  margin: 0 0 1em;
+}
+
+[data-editor-mount] .editor-split-body ul,
+[data-editor-mount] .editor-split-body ol {
+  padding-left: 1.5em;
+}
+
+[data-editor-mount] .editor-split-body li + li {
+  margin-top: 0.25em;
+}
+
+[data-editor-mount] .editor-split-body a {
+  color: var(--qd-accent);
+}
+
+[data-editor-mount] .editor-split-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+[data-editor-mount] .editor-split-body code {
+  padding: 0.15em 0.4em;
+  font-family: var(--qd-split-font);
+  font-size: 0.9em;
+  background: var(--qd-bg-subtle);
+  border-radius: 4px;
+}
+
+[data-editor-mount] .editor-split-body pre {
+  margin: 0 0 1em;
+  padding: 12px 14px;
+  overflow: auto;
+  background: var(--qd-bg-subtle);
+  border-radius: 8px;
+}
+
+[data-editor-mount] .editor-split-body pre code {
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  background: transparent;
+  border-radius: 0;
+}
+
+[data-editor-mount] .editor-split-body blockquote {
+  padding: 0.2em 0 0.2em 1em;
+  color: var(--qd-fg-muted);
+  border-left: 3px solid var(--qd-border-strong);
+}
+
+[data-editor-mount] .editor-split-body hr {
+  height: 1px;
+  margin: 1.6em 0;
+  background: var(--qd-border);
+  border: 0;
+}
+
+[data-editor-mount] .editor-split-body table {
+  border-collapse: collapse;
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+}
+
+[data-editor-mount] .editor-split-body th,
+[data-editor-mount] .editor-split-body td {
+  padding: 6px 12px;
+  border: 1px solid var(--qd-border);
+}
+
+[data-editor-mount] .editor-split-body th {
+  background: var(--qd-bg-subtle);
+}
+
+/* 任务列表：core 出裸 `<input>`，对齐得像回事（不引任何图标字体） */
+[data-editor-mount] .editor-split-body .contains-task-list {
+  padding-left: 0.4em;
+  list-style: none;
+}
+
+[data-editor-mount] .editor-split-body .task-list-item-checkbox {
+  margin-right: 0.4em;
+}

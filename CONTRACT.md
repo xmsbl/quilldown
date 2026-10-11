@@ -38,7 +38,9 @@ interface EditorOptions {
   tocDefault?: boolean;
   focusDefault?: boolean;
   mirror?: boolean | FormBindOptions; // 表单字段镜像（§4）；省略 = 自动找，false = 关
-  // 编辑器特定：layout / toolbar / …（wysiwyg 专用）
+  // 编辑器特定：wysiwyg 的 layout / toolbar / slashMenu / codeIndent…（WysiwygOptions）；
+  // split 的 mode / toolbar / changeDebounceMs / tabBreakpoint（SplitOptions）。
+  // 各自包声明，不开索引签名 —— 拼错的选项名会静默失效，那正是要避免的那类 bug。
 }
 
 interface EditorInstance {
@@ -60,6 +62,8 @@ function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
   `locale`；edodo **内建**文案上游没有 i18n 接口 → **构建期**烤进产物 → `@quilldown/wysiwyg`
   一个 locale 一份（默认 en；zh 见子路径出口 `@quilldown/wysiwyg/zh` 与 `dist/index.iife.zh.js`）。
 - **core 外置**：IIFE 产物取全局 `QuilldownCore`（宿主先引 core），不把 marked / Prism 打进来两遍。
+- **样式是独立入口**：`@quilldown/wysiwyg/index.css` / `@quilldown/split/index.css`。库**不**在运行时
+  注入 CSS（JS 入口也不 import 它 —— `sideEffects: false` 的包被宿主打包时 CSS import 会被整段摇掉）。
 
 ## 3. DOM 契约（宿主标记，库消费）
 
@@ -94,6 +98,9 @@ function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
   3. 字段上的 `input` → 回灌编辑器（`setMarkdown(v, { silent: true })`）—— 宿主草稿恢复的入口。
 - 编辑器每次变更落盘（去抖后）自动写字段；`onChange` 之前先写，宿主回调里直接读字段也是新值。
 - 每个宿主页**只装一个编辑器实例**（多实例抢同名字段 = 静默互相覆盖）。
+- ⚠ html 字段若是 `<input type="hidden">`：浏览器按 HTML 规范**吃掉值里的换行**（CR/LF）——
+  对 HTML 语义没影响，但**别拿它跟 `renderHtml()` 的原文做逐字比较**（这是浏览器行为，不是库的行为）。
+  要逐字保真就把字段做成 `<textarea hidden>`。
 
 ## 5. 版本与纪律
 
@@ -120,3 +127,8 @@ function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
 - core **自带** `marked` / `prismjs` 并打进产物（自足单文件）；加载时把 Prism 挂到 `globalThis.Prism`
   且 `manual = true` —— **绝不自动扫宿主 DOM**（库只做「给字符串 → 还 HTML」）。
 - **语法着色的 CSS 归宿主**（core 不发 CSS）；core 也不发任何编辑器 UI 样式（那是 wysiwyg / split 的事）。
+- core 另出 `renderDocument(md, options)` → `{ html, anchors }`：**同一份** HTML（与 `renderHtml` 逐字节一致，
+  同一条 lex → parse 路径）+ 每个顶级块在源文里的行区间（`{ line, endLine }`，0 起、含首含尾、
+  与 HTML 的顶级元素**同序等长**）。
+  分屏的滚动同步靠它把「源第 N 行 ↔ 预览某块」对上 —— 这份对应关系**只有渲染器自己知道**，
+  散到调用方去猜就是静默乱跳。⚠ 锚点只用来写预览 DOM 的 `data-line-*`，**不进 HTML 产物**。

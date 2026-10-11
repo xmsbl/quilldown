@@ -1,4 +1,4 @@
-import { Marked, type Renderer, type RendererObject, type Tokens } from "marked";
+import { Marked, type Renderer, type RendererObject, type Token, type Tokens } from "marked";
 
 import { escapeHtml, htmlToText } from "./html";
 import { prismGrammar } from "./languages";
@@ -11,6 +11,47 @@ export type Highlight = (code: string, language: string) => string | undefined;
 export interface RenderOptions {
   /** 覆盖内置 Prism 高亮（宿主想换主题 / 换高亮器时用；输出必须是**已转义**的 HTML） */
   highlight?: Highlight;
+}
+
+/** 一个**顶级块**的源文行区间（0 起、含首含尾）。 */
+export interface LineAnchor {
+  line: number;
+  endLine: number;
+}
+
+/** {@link renderDocument} 的产物：HTML + 与其顶级块**逐位对齐**的源行锚点。 */
+export interface RenderedDocument {
+  html: string;
+  anchors: LineAnchor[];
+}
+
+/**
+ * 顶级**元素型** token —— 与渲染出来的顶级元素**一一对应且同序**。
+ * 排除在外的是三类不产元素的东西：`space`（空行）/ `def`（链接定义）/ `html`
+ * （原始 HTML 被转义成文本节点，**不是元素**）。分屏滚动同步按这份对应关系把源行号写进预览 DOM。
+ */
+const TOP_LEVEL_BLOCK_TYPES = new Set([
+  "heading",
+  "paragraph",
+  "code",
+  "blockquote",
+  "list",
+  "table",
+  "hr",
+]);
+
+/** 顶级 token 流 → 元素型块的行区间（`raw` 的换行数就是行数，与 marked 的 token 口径一致）。 */
+function lineAnchors(tokens: Token[]): LineAnchor[] {
+  const anchors: LineAnchor[] = [];
+  let line = 0;
+  for (const token of tokens) {
+    const newlines = ((token as { raw?: string }).raw?.match(/\n/g) ?? []).length;
+    if (TOP_LEVEL_BLOCK_TYPES.has(token.type)) {
+      anchors.push({ line, endLine: line + Math.max(newlines - 1, 0) });
+    }
+    line += newlines;
+  }
+  return anchors;
 }
 
 /** 默认高亮：只处理收录语言（`language-x` 里的 `x` 直接查 Prism 语法表，别名由 Prism 登记） */
@@ -68,9 +109,24 @@ function buildRenderer(slug: (text: string) => string, highlight: Highlight): Re
  * 每次调用建一套 renderer / slugger（锚点去重表不能跨文档复用）。
  */
 export function renderHtml(md: string, options: RenderOptions = {}): string {
+  return renderDocument(md, options).html;
+}
+
+/**
+ * 与 {@link renderHtml} **同一份** HTML，外加每个顶级块在源文里的行区间。
+ *
+ * 为什么要另开一个出口：分屏的滚动同步要「源第 N 行 ↔ 预览某个块」的映射，而这份映射的
+ * 前提（哪些顶级 token 会产出元素、顺序如何）**只有渲染器自己知道** —— 让它散到调用方去猜，
+ * 猜错了不报错，只是预览跟着源文乱跳。
+ *
+ * 走的是与 `renderHtml` 完全相同的 lex → parse 路径（同一份 renderer / slugger），
+ * 所以两者的 HTML **逐字节一致**，不是「另一套渲染」。
+ */
+export function renderDocument(md: string, options: RenderOptions = {}): RenderedDocument {
   const renderer = buildRenderer(createSlugger(), options.highlight ?? prismHighlight);
   const parser = new Marked({ gfm: true, breaks: false, async: false, renderer });
+  const tokens = parser.lexer(md ?? "");
 
   // marked 的类型收不窄实例选项（`async: false` 恒同步）→ 只有这一处断言
-  return parser.parse(md ?? "") as string;
+  return { html: parser.parser(tokens) as string, anchors: lineAnchors(tokens) };
 }

@@ -13,7 +13,14 @@ export {
   type FormBinding,
 } from "./form";
 export { PRISM_LANGUAGES, prismGrammar, type PrismLanguage } from "./languages";
-export { renderHtml, type Highlight, type RenderOptions } from "./render";
+export {
+  renderDocument,
+  renderHtml,
+  type Highlight,
+  type LineAnchor,
+  type RenderedDocument,
+  type RenderOptions,
+} from "./render";
 export type {
   EditorCreate,
   EditorInstance,

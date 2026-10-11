@@ -70,6 +70,29 @@ body {
   color: var(--muted);
 }
 
+.bar-link {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.bar-link:hover {
+  color: var(--page-fg);
+}
+
+/* 分屏那页：壳高由库变量控（一栏一个滚动盒），所以外边这层不能再钉高度 */
+.editor.split-host {
+  height: auto;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+}
+
+.split-host [data-editor-mount] {
+  --qd-split-height: 68vh;
+}
+
 .bar-dark {
   margin-left: auto;
 }
@@ -118,4 +141,98 @@ kbd {
   margin-top: 6px;
   font-size: 13px;
   color: var(--muted);
+}
+
+/*
+ * 代码块着色归**宿主**（CONTRACT §6：core 只出 `.token` 结构，不发配色）——
+ * 所以分屏那页的代码颜色是这几行给的，不是库带的。
+ */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata,
+.token.punctuation {
+  color: #6b7280;
+}
+
+.token.tag,
+.token.property,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #b91c1c;
+}
+
+.token.boolean,
+.token.number,
+.token.atrule,
+.token.keyword,
+.token.rule {
+  color: #1d4ed8;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #0f766e;
+}
+
+.token.function,
+.token.class-name {
+  color: #a16207;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.token.attr-value {
+  color: #7c3aed;
+}
+
+:root.dark .token.comment,
+:root.dark .token.prolog,
+:root.dark .token.doctype,
+:root.dark .token.cdata,
+:root.dark .token.punctuation {
+  color: #8b949e;
+}
+
+:root.dark .token.tag,
+:root.dark .token.property,
+:root.dark .token.constant,
+:root.dark .token.symbol,
+:root.dark .token.deleted {
+  color: #ff7b72;
+}
+
+:root.dark .token.boolean,
+:root.dark .token.number,
+:root.dark .token.atrule,
+:root.dark .token.keyword,
+:root.dark .token.rule {
+  color: #79c0ff;
+}
+
+:root.dark .token.selector,
+:root.dark .token.attr-name,
+:root.dark .token.string,
+:root.dark .token.char,
+:root.dark .token.builtin,
+:root.dark .token.inserted {
+  color: #7ee787;
+}
+
+:root.dark .token.function,
+:root.dark .token.class-name {
+  color: #d2a8ff;
+}
+
+:root.dark .token.operator,
+:root.dark .token.entity,
+:root.dark .token.url,
+:root.dark .token.attr-value {
+  color: #ffa657;
 }
