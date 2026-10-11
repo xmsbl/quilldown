@@ -6,8 +6,11 @@
 [![npm @xmsbl/wysiwyg](https://img.shields.io/npm/v/@xmsbl/wysiwyg?label=%40quilldown%2Fwysiwyg)](https://www.npmjs.com/package/@xmsbl/wysiwyg)
 [![npm @xmsbl/split](https://img.shields.io/npm/v/@xmsbl/split?label=%40quilldown%2Fsplit)](https://www.npmjs.com/package/@xmsbl/split)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![CI](https://github.com/xmsbl/quilldown/actions/workflows/ci.yml/badge.svg)](https://github.com/xmsbl/quilldown/actions/workflows/ci.yml)
 
 Host-agnostic Markdown editors that share one render pipeline. Two editors, one contract:
+
+仓库：<https://github.com/xmsbl/quilldown>（源码 + issue）。
 
 | 包                    | 发布 | 作用                                                         |
 | --------------------- | ---- | ------------------------------------------------------------ |

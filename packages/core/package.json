@@ -11,6 +11,13 @@
     "syntax-highlighting",
     "renderer"
   ],
+  "homepage": "https://github.com/xmsbl/quilldown#readme",
+  "bugs": "https://github.com/xmsbl/quilldown/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xmsbl/quilldown.git",
+    "directory": "packages/core"
+  },
   "type": "module",
   "comment:sideEffects": "不能标 false：本包入口有真副作用（加载 Prism 语言组件 + 挂 globalThis.Prism）。标了 false 时 rollup 会把 `import \"prismjs/components/...\"` 整段摇掉 → 代码块静默不高亮（实测过）。",
   "sideEffects": true,

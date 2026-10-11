@@ -10,6 +10,13 @@
     "wysiwyg",
     "contenteditable"
   ],
+  "homepage": "https://github.com/xmsbl/quilldown#readme",
+  "bugs": "https://github.com/xmsbl/quilldown/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xmsbl/quilldown.git",
+    "directory": "packages/wysiwyg"
+  },
   "type": "module",
   "comment:sideEffects": "不能标 false：vendored 的 edodo 原件里一堆顶层定义（插件表 / 指令表）参与副作用分析，标了会被摇掉。",
   "sideEffects": true,

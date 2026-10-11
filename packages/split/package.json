@@ -10,6 +10,13 @@
     "split-view",
     "preview"
   ],
+  "homepage": "https://github.com/xmsbl/quilldown#readme",
+  "bugs": "https://github.com/xmsbl/quilldown/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xmsbl/quilldown.git",
+    "directory": "packages/split"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
