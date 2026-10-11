@@ -4,11 +4,14 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/coverage/**"] },
+  {
+    // vendored 的第三方原件（edodo）与我们的 locale 清单不参与 lint
+    ignores: ["**/dist/**", "**/node_modules/**", "**/coverage/**", "packages/*/vendor/**"],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{js,ts}"],
+    files: ["**/*.{js,mjs,ts}"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",

@@ -1,0 +1,10 @@
+{
+  "name": "edodo-write",
+  "version": "0.10.0",
+  "sha512": "7dad0f42f83f7c7c5297af61cd2c4124b01a959a767c340a1ca88f37770fbf5a272c3bd97a461c46c13a78016963e09493e30b50b9ebcf55b7922edf2a54c773",
+  "files": [
+    "package/dist-lib/standalone.js",
+    "package/dist-lib/edodo-write.css",
+    "package/LICENSE"
+  ]
+}

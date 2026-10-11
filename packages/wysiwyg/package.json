@@ -1,10 +1,10 @@
 {
   "name": "@quilldown/wysiwyg",
   "version": "0.0.0",
-  "description": "WYSIWYG Markdown editor (contenteditable).",
+  "description": "WYSIWYG Markdown editor (contenteditable, edodo-write based).",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
+  "comment:sideEffects": "不能标 false：vendored 的 edodo 原件里一堆顶层定义（插件表 / 指令表）参与副作用分析，标了会被摇掉。",
   "files": [
     "dist"
   ],
@@ -17,7 +17,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./zh": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.zh.js"
+    },
+    "./index.css": "./dist/index.css",
+    "./package.json": "./package.json"
   },
   "publishConfig": {
     "access": "public"
@@ -26,7 +32,8 @@
     "@quilldown/core": "^0.0.0"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "node scripts/build.mjs",
+    "vendor": "node scripts/vendor.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   }
 }

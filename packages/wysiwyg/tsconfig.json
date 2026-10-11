@@ -1,4 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "test", "vite.config.ts"]
+  "compilerOptions": {
+    // 测试要直接 import 构建脚本里的纯函数（scripts/*.mjs）→ 允许 JS 参与类型推断
+    "allowJs": true,
+    "checkJs": false
+  },
+  "include": ["src", "test", "scripts"]
 }

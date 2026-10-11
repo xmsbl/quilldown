@@ -3,10 +3,39 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Quilldown host example</title>
+    <title>Quilldown host example — @quilldown/wysiwyg</title>
   </head>
   <body>
-    <main id="host-example"></main>
+    <header class="bar">
+      <strong>Quilldown · <code>@quilldown/wysiwyg</code></strong>
+      <label class="bar-dark"><input type="checkbox" id="dark" /> dark</label>
+      <span class="bar-stat" id="stat"></span>
+    </header>
+
+    <!-- 宿主只要给这几样：根（默认开关 + 大纲容器）、挂载点、两个表单字段 -->
+    <form class="shell" id="shell">
+      <div
+        class="editor"
+        data-editor-root
+        data-editor-default-toc="1"
+        data-editor-default-focus="0"
+      >
+        <div class="canvas" data-editor-mount></div>
+        <aside class="toc" data-editor-toc hidden></aside>
+        <textarea data-editor-md name="Form.BodyMd" hidden spellcheck="false"></textarea>
+        <input data-editor-html name="Form.BodyHtml" type="hidden" />
+      </div>
+      <p class="hint">
+        Type <kbd>/</kbd> for the slash menu · make a table (Tab moves cells) · drag in an image
+        (mock upload, no network) · <kbd>Tab</kbd> inside a code block · toggle dark. The two form
+        fields are mirrored by the <em>host</em> — the library's form adapter lands in E3.
+      </p>
+      <details>
+        <summary>form fields (field mirroring)</summary>
+        <output class="fields" id="fields"></output>
+      </details>
+    </form>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

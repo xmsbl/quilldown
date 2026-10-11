@@ -1,0 +1,194 @@
+/**
+ * `@quilldown/wysiwyg` 自带样式 —— 库自有的 UI 增强（大纲 / 焦点 / IME 占位 / 块手柄 / 插入符）。
+ *
+ * 包装两层：
+ *  · `vendor/edodo/edodo-write.css`（编辑器本体 `.ew-*`）—— 构建时拼在本文件**之前**，
+ *    产物 = 单个 `dist/index.css`；
+ *  · 本文件 = 上面那些增强。
+ *
+ * 三条纪律：
+ *  · 颜色只走 `--qd-*`（每个使用处带默认值）—— 宿主接自己的调色板就覆盖这几个变量；
+ *  · **不写 `@layer`**：分层是宿主的决定（宿主可整包塞进自己的层，见 CONTRACT §1）；
+ *  · scope 只落在契约标记上（`[data-editor-mount]` / `[data-editor-root]` / `[data-editor-toc]`），
+ *    不碰宿主其它元素。
+ */
+:where([data-editor-root], [data-editor-mount]) {
+  --qd-fg: #1f2328;
+  --qd-fg-muted: #6b7280;
+  --qd-bg: #ffffff;
+  --qd-bg-subtle: #f6f7f8;
+  --qd-border: #e6e8eb;
+  --qd-border-strong: #cfd4da;
+  --qd-accent: #0f766e;
+  --qd-shadow: 0 8px 24px rgb(15 23 42 / 12%);
+  --qd-duration: 150ms;
+}
+
+/* 插入符：edodo 自己的 `caret-color: var(--ew-accent)` 是它自己的调色板 → 钉成宿主正文色 */
+[data-editor-mount] .ew-content {
+  caret-color: var(--qd-fg, #1f2328);
+}
+
+/* 焦点模式：只留光标块（标记由 create 里的插件维护） */
+[data-editor-mount].is-focus .ew-content > * {
+  opacity: 0.35;
+  transition: opacity var(--qd-duration, 150ms) ease;
+}
+[data-editor-mount].is-focus .ew-content > .is-current-block {
+  opacity: 1;
+}
+
+/* 空段落占位（edodo 的 `content` 是写死的英文）：文案由 create 写进变量（带引号的字符串） */
+[data-editor-mount] .ew-content p.ew-block-empty::before {
+  content: var(--qd-block-placeholder, "Type “/” for commands…");
+}
+/* IME 组字期间压掉**两处**占位（库的 isEmpty() 只认已进 DOM 的文本、空段落标记只在
+   selection 事件里重算 —— 组字时都不重跑 → 占位和组字串叠字） */
+[data-editor-mount] .ew-content.is-composing::before,
+[data-editor-mount] .ew-content.is-composing .ew-block-empty::before {
+  content: none;
+}
+
+/* edodo 块手柄（＋ / ⣿）：字面字形又小又淡 → 换成自绘图形（＋ = 两笔交叉、⣿ = 点阵），
+   `font-size: 0` 把字面字符藏掉（居中由库的 inline-flex 负责） */
+[data-editor-mount] .ew-block-handle {
+  height: 26px;
+  gap: 2px;
+}
+[data-editor-mount] .ew-bh-add,
+[data-editor-mount] .ew-bh-drag {
+  width: 24px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--qd-fg-muted, #6b7280);
+  font-size: 0;
+}
+[data-editor-mount] .ew-bh-add:hover,
+[data-editor-mount] .ew-bh-drag:hover {
+  background: var(--qd-bg-subtle, #f6f7f8);
+  color: var(--qd-accent, #0f766e);
+}
+[data-editor-mount] .ew-bh-add::before {
+  content: "";
+  width: 13px;
+  height: 13px;
+  background:
+    linear-gradient(currentColor, currentColor) center / 13px 1.8px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 1.8px 13px no-repeat;
+}
+[data-editor-mount] .ew-bh-drag::before {
+  content: "";
+  width: 10px;
+  height: 15px;
+  background-image: radial-gradient(currentColor 1.1px, transparent 1.1px);
+  background-size: 5px 5px;
+}
+
+/* ── 浮动大纲（Notion 式三态：收起刻度条 → 悬停 / 聚焦展开 → 滚动高亮）──────────
+   容器只包住那列刻度（宽 ~18px），卡片绝对定位、向左长出，不占版式也不挡正文。
+   位置相对最近的定位祖先（宿主给 `position: relative` 即可）。 */
+[data-editor-toc] {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.editor-toc-ticks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+  padding: 10px 6px;
+  max-height: 50vh;
+  overflow: hidden;
+  transition: opacity var(--qd-duration, 150ms) ease;
+}
+.editor-toc-tick {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--qd-border-strong, #cfd4da);
+  cursor: pointer;
+  transition:
+    background var(--qd-duration, 150ms) ease,
+    width var(--qd-duration, 150ms) ease;
+}
+.editor-toc-tick[data-level="1"] {
+  width: 18px;
+}
+.editor-toc-tick[data-level="2"] {
+  width: 12px;
+}
+.editor-toc-tick:hover {
+  background: var(--qd-fg-muted, #6b7280);
+}
+.editor-toc-tick.is-active {
+  background: var(--qd-accent, #0f766e);
+}
+.editor-toc-card {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 216px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 6px 0;
+  background: var(--qd-bg, #ffffff);
+  border: 1px solid var(--qd-border, #e6e8eb);
+  border-radius: 10px;
+  box-shadow: var(--qd-shadow, 0 8px 24px rgb(15 23 42 / 12%));
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(8px);
+  transition:
+    opacity var(--qd-duration, 150ms) ease,
+    transform var(--qd-duration, 150ms) ease;
+}
+[data-editor-toc]:hover .editor-toc-ticks,
+[data-editor-toc]:focus-within .editor-toc-ticks {
+  opacity: 0;
+  pointer-events: none;
+}
+[data-editor-toc]:hover .editor-toc-card,
+[data-editor-toc]:focus-within .editor-toc-card {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
+}
+.editor-toc-row {
+  display: block;
+  width: 100%;
+  padding: 4px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--qd-fg-muted, #6b7280);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.editor-toc-row[data-level="2"] {
+  padding-left: 26px;
+}
+.editor-toc-row[data-level="3"] {
+  padding-left: 38px;
+}
+.editor-toc-row:hover {
+  color: var(--qd-fg, #1f2328);
+  background: var(--qd-bg-subtle, #f6f7f8);
+}
+.editor-toc-row.is-active {
+  color: var(--qd-accent, #0f766e);
+  font-weight: 600;
+}

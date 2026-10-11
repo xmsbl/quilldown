@@ -51,6 +51,55 @@ const html = renderHtml(md);
 IIFE 宿主：每个包一个全局名 —— `window.QuilldownCore` / `window.QuilldownWysiwyg` /
 `window.QuilldownSplit`（互不覆盖）。
 
+## wysiwyg（所见即所得，基于 edodo-write）
+
+```ts
+import { create } from "@quilldown/wysiwyg";
+import "@quilldown/wysiwyg/index.css";
+
+const editor = create(document.querySelector("[data-editor-mount]")!, {
+  value: "# hello",
+  locale: "en", // 库自有文案；zh 见下
+  upload: (file) => uploadToMyServer(file),
+});
+editor.getMarkdown(); // 真相源
+editor.getHtml(); // 落库 HTML（= core.renderHtml(md)）
+```
+
+**宿主提供的 DOM 标记**（库只认属性 + name，不依赖 id）：
+
+| 标记                            | 必需 | 作用                                                       |
+| ------------------------------- | ---- | ---------------------------------------------------------- |
+| `[data-editor-mount]`           | ✅   | 挂载点（同时是滚动容器）                                   |
+| `[data-editor-root]`            | 可选 | 默认开关与大纲容器的查找范围；缺省 = 挂载点父元素          |
+| `[data-editor-toc]`             | 可选 | 浮动大纲容器（配 root 上的 `data-editor-default-toc="1"`） |
+| `data-editor-default-focus="1"` | 可选 | 焦点模式（只留光标块；标记由库维护）                       |
+
+**locale 有两半**：库**自有**文案（占位 / 大纲标签）走运行时 `locale` 选项；edodo **内建**文案
+（斜杠菜单 / 表格 / 块菜单）上游没有 i18n 接口 → **构建期**把 `locales/<lang>.tsv` 烤进产物，
+所以产物一个 locale 一份：
+
+```html
+<script src="…/@quilldown/wysiwyg/dist/index.iife.js"></script>
+<!-- 中文 -->
+<script src="…/@quilldown/wysiwyg/dist/index.iife.zh.js"></script>
+```
+
+ESM 侧：`@quilldown/wysiwyg`（en）/ `@quilldown/wysiwyg/zh`。
+
+**CSS**：`@quilldown/wysiwyg/index.css`（edodo 本体 + 本包增强）—— 颜色只认 `--qd-*`，
+`@layer` 由宿主决定（库不写层）。**core 外置**：IIFE 宿主先引 `QuilldownCore`。
+
+**冒烟页**（契约的可执行版）：
+
+```bash
+npm run dev -w @quilldown/host-example   # http://localhost:5173
+```
+
+**改 vendored 编辑器**：`npm run vendor -w @quilldown/wysiwyg`（按 `vendor/VERSION.json` 的版本
+
+- sha512 取原件入库）；i18n 清单在 `locales/`，构建时施加（有一条不再命中就**构建失败**）。
+
 ## 结构
 
 ```

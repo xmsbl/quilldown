@@ -3,3 +3,6 @@ dist
 coverage
 package-lock.json
 LICENSE
+# vendored 第三方原件（edodo）与汉化清单：保持原件字节，别让 prettier 改写
+packages/*/vendor/
+packages/*/locales/

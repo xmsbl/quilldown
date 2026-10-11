@@ -49,19 +49,24 @@ function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
 - ESM：`import { create } from "@quilldown/wysiwyg"`。
 - IIFE：**每包一个独立全局名**（互不覆盖）—— `window.QuilldownCore` / `window.QuilldownWysiwyg`
   / `window.QuilldownSplit`。
+- **locale 分两半**（同一选项 `locale`，两种机制）：库**自有**文案（占位 / 大纲标签）走运行时
+  `locale`；edodo **内建**文案上游没有 i18n 接口 → **构建期**烤进产物 → `@quilldown/wysiwyg`
+  一个 locale 一份（默认 en；zh 见子路径出口 `@quilldown/wysiwyg/zh` 与 `dist/index.iife.zh.js`）。
+- **core 外置**：IIFE 产物取全局 `QuilldownCore`（宿主先引 core），不把 marked / Prism 打进来两遍。
 
 ## 3. DOM 契约（宿主标记，库消费）
 
-| 标记                        | 含义                                                         | 冻结 |
-| --------------------------- | ------------------------------------------------------------ | ---- |
-| `[data-editor-mount]`       | 挂载点（库把编辑器塞进来）                                   | ✅   |
-| `form.editor-shell`         | 表单适配器选择的表单                                         | ✅   |
-| `[data-editor-md]`          | Markdown 真相源（镜像 / 回灌）；无则回退 `[name$=".BodyMd"]` | ✅   |
-| `[data-editor-html]`        | HTML 产物（库填）；无则回退 `[name$=".BodyHtml"]`            | ✅   |
-| `[data-editor-toc]`         | 浮动大纲容器                                                 | ✅   |
-| `data-editor-default-toc`   | 默认开关（`1` / `0`）                                        | ✅   |
-| `data-editor-default-focus` | 默认开关（`1` / `0`）                                        | ✅   |
-| `data-image-upload-url`     | **宿主专有**：由宿主适配层读后转成 `upload` 回调             | ⚠    |
+| 标记                        | 含义                                                                                              | 冻结 |
+| --------------------------- | ------------------------------------------------------------------------------------------------- | ---- |
+| `[data-editor-mount]`       | 挂载点（库把编辑器塞进来）                                                                        | ✅   |
+| `form.editor-shell`         | 表单适配器选择的表单                                                                              | ✅   |
+| `[data-editor-md]`          | Markdown 真相源（镜像 / 回灌）；无则回退 `[name$=".BodyMd"]`                                      | ✅   |
+| `[data-editor-html]`        | HTML 产物（库填）；无则回退 `[name$=".BodyHtml"]`                                                 | ✅   |
+| `[data-editor-toc]`         | 浮动大纲容器                                                                                      | ✅   |
+| `data-editor-default-toc`   | 默认开关（`1` / `0`）                                                                             | ✅   |
+| `data-editor-default-focus` | 默认开关（`1` / `0`）                                                                             | ✅   |
+| `data-image-upload-url`     | **宿主专有**：由宿主适配层读后转成 `upload` 回调                                                  | ⚠    |
+| `[data-editor-root]`        | 可选根：默认开关（`data-editor-default-*`）与 `[data-editor-toc]` 的查找范围；缺省 = 挂载点父元素 | ✅   |
 
 - 库只用**属性与 name**，**不依赖 id**（`#cp-body` / `#cp-html` 是 Inkwell 专有 id，非契约）。
 - `data-editor-*` 用连字符小写，DOM 类名沿用 `page-editor` / `editor-*` / 状态 `is-*`。

@@ -1,0 +1,121 @@
+/**
+ * host-example 的**宿主样式**：页级布局 + 暗色。
+ *
+ * 库自己的样式（`@quilldown/wysiwyg/index.css`）颜色只认 `--qd-*`；edodo 本体认它自己的
+ * `--ew-*`。两者都由宿主这一层映射 —— 库不假设任何主题。
+ */
+:root {
+  --page-bg: #f6f7f8;
+  --page-fg: #1f2328;
+  --line: #e6e8eb;
+  --muted: #6b7280;
+}
+
+:root.dark {
+  --page-bg: #14171a;
+  --page-fg: #e8eaed;
+  --line: #2a2f34;
+  --muted: #9aa4ae;
+
+  /* 库自带样式（大纲 / 块手柄 / 插入符）的调色板 */
+  --qd-fg: #e8eaed;
+  --qd-fg-muted: #9aa4ae;
+  --qd-bg: #1b1f23;
+  --qd-bg-subtle: #23282d;
+  --qd-border: #2a2f34;
+  --qd-border-strong: #3b4249;
+  --qd-accent: #4dd0c4;
+  --qd-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+
+  /* edodo 本体的调色板（它自带跟随系统的暗色，这里让它跟着页面开关走） */
+  --ew-fg: #e8eaed;
+  --ew-fg-muted: #a9b1ba;
+  --ew-fg-faint: #7d868f;
+  --ew-bg: #1b1f23;
+  --ew-bg-subtle: #23282d;
+  --ew-border: #2a2f34;
+  --ew-accent: #4dd0c4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font:
+    15px/1.6 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  background: var(--page-bg);
+  color: var(--page-fg);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.bar code {
+  font-size: 13px;
+}
+
+.bar-dark,
+.bar-stat {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bar-dark {
+  margin-left: auto;
+}
+
+.bar-dark + .bar-stat {
+  margin-left: 0;
+}
+
+.shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* 编辑器容器：**定位祖先** —— 库的大纲（`[data-editor-toc]`）是绝对定位的 */
+.editor {
+  position: relative;
+  height: 60vh;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--qd-bg, #ffffff);
+  overflow: hidden;
+}
+
+/* 挂载点 = 滚动容器（大纲的滚动高亮就读这里） */
+.canvas {
+  height: 100%;
+  overflow: auto;
+  padding: 12px 16px;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.fields {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
