@@ -1,8 +1,8 @@
 /**
  * `create(mount, opts)` —— 契约 §2 的工厂（分屏：源码 + 预览 + 滚动同步）。
  *
- * 与 `@quilldown/wysiwyg` 同一份契约、同一条产出管线（CONTRACT §1）：
- * 库只产出 markdown，**落库 HTML 恒由 `@quilldown/core` 的 `renderHtml` 产出** ——
+ * 与 `@xmsbl/wysiwyg` 同一份契约、同一条产出管线（CONTRACT §1）：
+ * 库只产出 markdown，**落库 HTML 恒由 `@xmsbl/core` 的 `renderHtml` 产出** ——
  * 所以两款编辑器的 `getHtml()` 逐字节一致，宿主只需要一套 sanitize。
  *
  * 左栏 = 原生 `<textarea>`（不是 CodeMirror）：撤销栈 / 输入法 / 拖放 / 拼写检查都是浏览器白送的，
@@ -15,8 +15,8 @@
  *         ├ .editor-split-write   → textarea.editor-split-source
  *         └ .editor-split-preview → .editor-split-body（core 的 HTML；块上带 data-line-*）
  */
-import { bindForm, renderDocument } from "@quilldown/core";
-import type { EditorInstance, EditorOptions, FormBinding, LineAnchor } from "@quilldown/core";
+import { bindForm, renderDocument } from "@xmsbl/core";
+import type { EditorInstance, EditorOptions, FormBinding, LineAnchor } from "@xmsbl/core";
 
 import { createIcon } from "./icons.js";
 import { createScrollSync, writeLineAnchors } from "./scroll-sync.js";

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 构建 `@quilldown/wysiwyg`。
+ * 构建 `@xmsbl/wysiwyg`。
  *
  *   node packages/wysiwyg/scripts/build.mjs
  *
@@ -11,7 +11,7 @@
  *
  * ⚠ locale 的施加点是**读取** vendored 原件的瞬间（vite plugin 的 `load`）：
  *   磁盘上那份 `vendor/edodo/standalone.js` 永远保持原件，多个变体互不污染。
- * ⚠ `@quilldown/core` 外置（IIFE 取全局 `QuilldownCore`）：两个包各发一份产物，
+ * ⚠ `@xmsbl/core` 外置（IIFE 取全局 `QuilldownCore`）：两个包各发一份产物，
  *   免得 marked + Prism 被打进来两遍。
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -76,8 +76,8 @@ for (const locale of LOCALES) {
           format === "es" ? `index${locale.suffix}.js` : `index.iife${locale.suffix}.js`,
       },
       rollupOptions: {
-        external: ["@quilldown/core", "edododraw", "katex"],
-        output: { globals: { "@quilldown/core": "QuilldownCore" } },
+        external: ["@xmsbl/core", "edododraw", "katex"],
+        output: { globals: { "@xmsbl/core": "QuilldownCore" } },
       },
       sourcemap: true,
       emptyOutDir: false,

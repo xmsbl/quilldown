@@ -1,5 +1,5 @@
 {
-  "name": "@quilldown/host-example",
+  "name": "@xmsbl/host-example",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@quilldown/core": "^0.1.0",
-    "@quilldown/split": "^0.1.0",
-    "@quilldown/wysiwyg": "^0.1.0"
+    "@xmsbl/core": "^0.1.0",
+    "@xmsbl/split": "^0.1.0",
+    "@xmsbl/wysiwyg": "^0.1.0"
   }
 }

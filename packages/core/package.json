@@ -1,5 +1,5 @@
 {
-  "name": "@quilldown/core",
+  "name": "@xmsbl/core",
   "version": "0.1.0",
   "description": "Contract constants + the single Markdown-to-HTML render pipeline.",
   "license": "MIT",

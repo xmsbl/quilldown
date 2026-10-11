@@ -28,16 +28,14 @@ describe("构建期 i18n 施加", () => {
 /**
  * **产物**守卫（读 dist，不是 src）：locale 变体必须真的不同 ——
  * 若 i18n plugin 没接上（或 `charset` 退回 ascii 把中文转义了），这里立刻失败。
- * 需要先 `npm run build -w @quilldown/wysiwyg`（根 CI 的顺序是 build → test）。
+ * 需要先 `npm run build -w @xmsbl/wysiwyg`（根 CI 的顺序是 build → test）。
  */
 describe("产物 locale 变体", () => {
   const read = (name: string): string => {
     try {
       return readFileSync(new URL(`dist/${name}`, pkgRoot), "utf8");
     } catch {
-      throw new Error(
-        "产物不在：先跑 `npm run build -w @quilldown/wysiwyg`（根 CI 是 build → test）",
-      );
+      throw new Error("产物不在：先跑 `npm run build -w @xmsbl/wysiwyg`（根 CI 是 build → test）");
     }
   };
 

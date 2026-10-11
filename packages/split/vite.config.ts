@@ -18,15 +18,15 @@ export default defineConfig({
     // core 外置（IIFE 取全局 `QuilldownCore`）：marked + Prism 已经在 core 产物里，
     // 两个包各打一份等于宿主页面里跑两套词法器
     rollupOptions: {
-      external: ["@quilldown/core"],
-      output: { globals: { "@quilldown/core": "QuilldownCore" } },
+      external: ["@xmsbl/core"],
+      output: { globals: { "@xmsbl/core": "QuilldownCore" } },
     },
     sourcemap: true,
   },
   plugins: [
     dts({ include: ["src"] }),
     {
-      // 样式单独一个入口（`@quilldown/split/index.css`）：入口**不** import CSS ——
+      // 样式单独一个入口（`@xmsbl/split/index.css`）：入口**不** import CSS ——
       // 本包标了 `sideEffects: false`，自动 import 的 CSS 会被宿主的打包器整段摇掉。
       name: "quilldown:css",
       closeBundle() {

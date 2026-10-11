@@ -16,11 +16,11 @@
 | 滚动同步（双向）                   | ✅              | 块级行锚点 + 回声抑制 + 折线插值（从 Inkwell git 历史移植）                             |
 | 工具条默认动作集                   | ✅              | bold / italic / quote / code / codeBlock / link / image / ul / ol / heading(h1–h6) / hr |
 | 选中就包、没选中插占位词并选中     | ✅              | 与 ByteMD 一致（`*Text` / `*Item` 那批文案键也照抄）                                    |
-| `previewDebounce`                  | ✅              | 改名 `changeDebounceMs`（与 `@quilldown/wysiwyg` 同名，默认 300ms）                     |
+| `previewDebounce`                  | ✅              | 改名 `changeDebounceMs`（与 `@xmsbl/wysiwyg` 同名，默认 300ms）                         |
 | `placeholder`                      | ✅              | `<textarea>` 原生 `placeholder`                                                         |
 | `locale` / 覆盖文案                | ✅              | `locale: 'en' \| 'zh'` + `strings` 逐键覆盖（键名照抄 ByteMD 的 locale JSON）           |
 | `uploadImages`                     | ✅              | 契约叫 `upload`（`UploadFn`）：配了就出文件选择，没配就插 `![alt](https://)` 骨架       |
-| Markdown → HTML                    | ✅ **更强**     | 落库 HTML 恒由 `@quilldown/core` 产出（GFM + Prism 13 语言），**与 wysiwyg 逐字节一致** |
+| Markdown → HTML                    | ✅ **更强**     | 落库 HTML 恒由 `@xmsbl/core` 产出（GFM + Prism 13 语言），**与 wysiwyg 逐字节一致**     |
 | 默认安全（XSS）                    | ✅              | 原始 HTML 一律转义（core 口径），宿主再叠一层 sanitize 也不冲突                         |
 | 官方 GFM 插件                      | ✅ **内置**     | 表格 / 删除线 / 任务列表 / 自动链接在 core 里，不需要插件                               |
 | 官方 highlight 插件                | ✅ **内置**     | Prism 在 core 里；着色 CSS 归宿主（CONTRACT §6）                                        |
@@ -58,6 +58,6 @@
 ## 4. 验收口径（DoD）
 
 - 同等能力那栏：库仓单测覆盖（`packages/split/test/`：工具条动作逐条、锚点映射、表单字段镜像、往返幂等、产物守卫）。
-- 两栏同步滚动：`packages/host-example/split.html`（`npm run dev -w @quilldown/host-example`）——
+- 两栏同步滚动：`packages/host-example/split.html`（`npm run dev -w @xmsbl/host-example`）——
   这个要**人眼**看一眼（jsdom 量不出布局，几何那半测不了）。
 - 与 wysiwyg 的一致性：`getHtml()` 相等（同一个 `renderHtml`），由 `adapter.test.ts` 焊住。

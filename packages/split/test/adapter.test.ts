@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { renderHtml } from "@quilldown/core";
+import { renderHtml } from "@xmsbl/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { create } from "../src/index";

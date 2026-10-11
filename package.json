@@ -12,8 +12,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @quilldown/core && npm run build -w @quilldown/wysiwyg && npm run build -w @quilldown/split && npm run build -w @quilldown/host-example",
-    "build:core": "npm run build -w @quilldown/core",
+    "build": "npm run build -w @xmsbl/core && npm run build -w @xmsbl/wysiwyg && npm run build -w @xmsbl/split && npm run build -w @xmsbl/host-example",
+    "build:core": "npm run build -w @xmsbl/core",
     "test": "vitest run",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
