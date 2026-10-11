@@ -4,7 +4,7 @@
   "description": "Contract constants + the single Markdown-to-HTML render pipeline.",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
+  "comment:sideEffects": "不能标 false：本包入口有真副作用（加载 Prism 语言组件 + 挂 globalThis.Prism）。标了 false 时 rollup 会把 `import \"prismjs/components/...\"` 整段摇掉 → 代码块静默不高亮（实测过）。",
   "files": [
     "dist"
   ],
@@ -25,5 +25,12 @@
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "marked": "^18.1.0",
+    "prismjs": "^1.30.0"
+  },
+  "devDependencies": {
+    "@types/prismjs": "^1.26.6"
   }
 }

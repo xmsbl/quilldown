@@ -1,8 +1,10 @@
 /**
- * @quilldown/core —— 契约常量与渲染管线。
+ * @quilldown/core —— 契约常量 + 共享类型 + 渲染管线。
  *
- * 硬规则：本包是**唯一**产出落库 HTML 的地方；编辑器包只产出 markdown。
+ * 硬规则：本包是**唯一**产出落库 HTML 的地方（marked GFM + Prism）；
+ * 编辑器包只产出 markdown，落库 HTML 一律走 {@link renderHtml}。
  */
-
-/** 契约版本（与仓库根 `CONTRACT.md` 头部一致；破坏性改动才 +1）。 */
-export const CONTRACT_VERSION = "1";
+export { CONTRACT_VERSION } from "./contract";
+export { PRISM_LANGUAGES, prismGrammar, type PrismLanguage } from "./languages";
+export { renderHtml, type Highlight, type RenderOptions } from "./render";
+export type { EditorCreate, EditorInstance, EditorOptions, RenderHtml, UploadFn } from "./types";

@@ -47,7 +47,8 @@ function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
 ```
 
 - ESM：`import { create } from "@quilldown/wysiwyg"`。
-- IIFE：全局 `window.Quilldown`（`<script>` 宿主用）。
+- IIFE：**每包一个独立全局名**（互不覆盖）—— `window.QuilldownCore` / `window.QuilldownWysiwyg`
+  / `window.QuilldownSplit`。
 
 ## 3. DOM 契约（宿主标记，库消费）
 
@@ -77,3 +78,22 @@ function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
 - npm 包版本按 semver 独立演进（从 `0.x` 起）；**契约版本只在破坏性改动时 +1**。
 - 契约改动必须**落进仓**（commit），不留对话里。
 - 校验靠 `packages/host-example`（契约的可执行版：挂载 + 打字 + 上传 mock + 断言 `.BodyMd` / `.BodyHtml` 被填 + `getMarkdown()` 往返幂等）。
+
+## 6. core 产出口径（`renderHtml` 的形状）
+
+> **为什么写进契约**：宿主的 sanitize 白名单、`.token` / `.language-*` 样式、目录锚点**全都依赖这个形状** ——
+> 形状一变，落库 HTML 被白名单削掉或目录跳不动，而两边都不会报错。
+> 本节描述的是 v1 既有事实（E1 落地时补齐），**未变更宿主那半**。
+
+- **GFM 开、`breaks` 关**（表格 / 删除线 / 任务列表 / 自动链接；单换行不折行）。
+- **原始 HTML 一律转义**：`<script>alert(1)</script>` 出来是文字（等价服务端 `DisableHtml`）——宿主无需再防正文注入。
+- **标题带锚点**：`<h2 id="时间口径">`；id = 小写、去标点、空白→`-`、保留 Unicode 字母（中文可读）；
+  同名依次 `-1` / `-2`；标题只有标点时回退 `section`。
+- **代码块**：`<pre><code class="language-<lang>">…</code></pre>`（无语言则无 class）；
+  命中语言集时内容是 Prism 产物（`<span class="token …">`），HTML 已转义 —— 宿主 CSS 认 `pre > code` + `.token`。
+- **语言集（冻结 13 种）**：`markup` `css` `clike` `javascript` `typescript` `json` `bash` `python`
+  `sql` `csharp` `yaml` `markdown` `diff`（别名 `html` / `js` / `ts` / `cs` / `yml` / `md` / `py` / `sh` 由 Prism 登记）。
+  加语言 = core 两处（`src/languages.ts` + `src/prism/components.ts`）+ 宿主侧断言同步。
+- core **自带** `marked` / `prismjs` 并打进产物（自足单文件）；加载时把 Prism 挂到 `globalThis.Prism`
+  且 `manual = true` —— **绝不自动扫宿主 DOM**（库只做「给字符串 → 还 HTML」）。
+- **语法着色的 CSS 归宿主**（core 不发 CSS）；core 也不发任何编辑器 UI 样式（那是 wysiwyg / split 的事）。

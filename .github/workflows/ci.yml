@@ -20,5 +20,6 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm run test
+      # build 在 test 前：core 的产物守卫读 dist/index.iife.js
       - run: npm run build
+      - run: npm run test

@@ -13,15 +13,17 @@
   ],
   "scripts": {
     "build": "npm run build -w @quilldown/core && npm run build -w @quilldown/wysiwyg && npm run build -w @quilldown/split && npm run build -w @quilldown/host-example",
+    "build:core": "npm run build -w @quilldown/core",
     "test": "vitest run",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "ci": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build"
+    "ci": "npm run lint && npm run format:check && npm run typecheck && npm run build && npm run test"
   },
   "devDependencies": {
     "@eslint/js": "^9",
+    "@types/node": "^26.6.5",
     "eslint": "^9",
     "eslint-config-prettier": "^10",
     "globals": "^16",

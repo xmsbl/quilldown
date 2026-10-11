@@ -20,27 +20,36 @@ Host-agnostic Markdown editors that share one render pipeline. Two editors, one 
 
 ```bash
 npm ci          # 装依赖（workspaces 一次装齐）
-npm run ci      # lint + format:check + typecheck + test + build（与 CI 同口径）
+npm run ci      # lint + format:check + typecheck + build + test（与 CI 同口径）
 ```
 
-单项：`npm run lint` · `npm run typecheck` · `npm run test` · `npm run build` · `npm run format`。
+单项：`npm run lint` · `npm run typecheck` · `npm run test` · `npm run build` · `npm run format`；
+只重建 core：`npm run build:core`（core 有一条**产物**守卫读 `dist/index.iife.js`，所以 `test` 排在 `build` 后面）。
 
 ## 宿主用法（示意）
 
 ```ts
 import { create } from "@quilldown/wysiwyg";
+import { renderHtml } from "@quilldown/core"; // 落库 HTML 的唯一产出者
 
 const editor = create(document.querySelector("[data-editor-mount]")!, {
   value: "# hello",
   upload: (file) => uploadToMyServer(file), // 宿主自己的端点与鉴权
   onChange: (md, html) => {
     mdField.value = md;
-    htmlField.value = html;
+    htmlField.value = html; // = renderHtml(md)
   },
 });
+
+// 只想要渲染管线（不要编辑器）：marked GFM + Prism，全在 core 里
+const html = renderHtml(md);
 ```
 
-IIFE 宿主：`window.Quilldown`。
+`marked` / `prismjs` **打进 core 产物**（自足单文件，宿主不必再引脚本）；语法着色的 **CSS 归宿主**
+（core 只出 `<span class="token …">`）。
+
+IIFE 宿主：每个包一个全局名 —— `window.QuilldownCore` / `window.QuilldownWysiwyg` /
+`window.QuilldownSplit`（互不覆盖）。
 
 ## 结构
 
