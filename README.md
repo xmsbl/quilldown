@@ -20,11 +20,13 @@ Host-agnostic Markdown editors that share one render pipeline. Two editors, one 
 
 ```bash
 npm ci          # 装依赖（workspaces 一次装齐）
-npm run ci      # lint + format:check + typecheck + build + test（与 CI 同口径）
+npm run ci      # lint + format:check + build + typecheck + test（与 CI 同口径）
 ```
 
 单项：`npm run lint` · `npm run typecheck` · `npm run test` · `npm run build` · `npm run format`；
-只重建 core：`npm run build:core`（core 有一条**产物**守卫读 `dist/index.iife.js`，所以 `test` 排在 `build` 后面）。
+只重建 core：`npm run build:core`。
+**顺序不能换**：跨包类型走的是各包 `dist` 的 `d.ts`（消费者视角，dist 不入库），而 core 有一条
+**产物**守卫直接读 `dist/index.iife.js`。
 
 ## 宿主用法（示意）
 
@@ -32,14 +34,15 @@ npm run ci      # lint + format:check + typecheck + build + test（与 CI 同口
 import { create } from "@quilldown/wysiwyg";
 import { renderHtml } from "@quilldown/core"; // 落库 HTML 的唯一产出者
 
+// 表单里放 [data-editor-md] / [data-editor-html] 两个字段（或 name="…BodyMd" 的），
+// 字段镜像归库的表单适配器（mirror 默认开）
 const editor = create(document.querySelector("[data-editor-mount]")!, {
   value: "# hello",
   upload: (file) => uploadToMyServer(file), // 宿主自己的端点与鉴权
-  onChange: (md, html) => {
-    mdField.value = md;
-    htmlField.value = html; // = renderHtml(md)
-  },
 });
+
+// 不想用适配器：mirror: false 后自己写
+document.querySelector("[data-editor-md]")!.value = editor.getMarkdown();
 
 // 只想要渲染管线（不要编辑器）：marked GFM + Prism，全在 core 里
 const html = renderHtml(md);
@@ -71,9 +74,17 @@ editor.getHtml(); // 落库 HTML（= core.renderHtml(md)）
 | 标记                            | 必需 | 作用                                                       |
 | ------------------------------- | ---- | ---------------------------------------------------------- |
 | `[data-editor-mount]`           | ✅   | 挂载点（同时是滚动容器）                                   |
+| `form.editor-shell`             | 可选 | 表单适配器认的表单（缺省回退任意 `form`）                  |
+| `[data-editor-md]`              | 可选 | Markdown 真相源字段（缺省回退 `name$=".BodyMd"`）          |
+| `[data-editor-html]`            | 可选 | HTML 产物字段（缺省回退 `name$=".BodyHtml"`）              |
 | `[data-editor-root]`            | 可选 | 默认开关与大纲容器的查找范围；缺省 = 挂载点父元素          |
 | `[data-editor-toc]`             | 可选 | 浮动大纲容器（配 root 上的 `data-editor-default-toc="1"`） |
 | `data-editor-default-focus="1"` | 可选 | 焦点模式（只留光标块；标记由库维护）                       |
+
+字段镜像默认由库的表单适配器做（`mirror`，见 [`CONTRACT.md`](./CONTRACT.md) §4）。
+
+**可选依赖**：edodo 原件里有两个懒加载三方件 —— `katex`（数学公式）与 `edododraw`（绘图）。
+宿主不提供时只有那两个功能不可用（其余编辑不受影响）；产物不含它们。
 
 **locale 有两半**：库**自有**文案（占位 / 大纲标签）走运行时 `locale` 选项；edodo **内建**文案
 （斜杠菜单 / 表格 / 块菜单）上游没有 i18n 接口 → **构建期**把 `locales/<lang>.tsv` 烤进产物，
@@ -90,7 +101,7 @@ ESM 侧：`@quilldown/wysiwyg`（en）/ `@quilldown/wysiwyg/zh`。
 **CSS**：`@quilldown/wysiwyg/index.css`（edodo 本体 + 本包增强）—— 颜色只认 `--qd-*`，
 `@layer` 由宿主决定（库不写层）。**core 外置**：IIFE 宿主先引 `QuilldownCore`。
 
-**冒烟页**（契约的可执行版）：
+**冒烟页**（契约的可执行版：字段镜像 + submit 自检 + 往返幂等）：
 
 ```bash
 npm run dev -w @quilldown/host-example   # http://localhost:5173

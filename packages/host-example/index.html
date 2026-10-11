@@ -13,7 +13,7 @@
     </header>
 
     <!-- 宿主只要给这几样：根（默认开关 + 大纲容器）、挂载点、两个表单字段 -->
-    <form class="shell" id="shell">
+    <form class="shell editor-shell" id="shell">
       <div
         class="editor"
         data-editor-root
@@ -28,12 +28,17 @@
       <p class="hint">
         Type <kbd>/</kbd> for the slash menu · make a table (Tab moves cells) · drag in an image
         (mock upload, no network) · <kbd>Tab</kbd> inside a code block · toggle dark. The two form
-        fields are mirrored by the <em>host</em> — the library's form adapter lands in E3.
+        fields are mirrored by the <em>library's form adapter</em> (<code>mirror</code> defaults on,
+        CONTRACT §4).
       </p>
       <details>
         <summary>form fields (field mirroring)</summary>
         <output class="fields" id="fields"></output>
       </details>
+      <p class="actions">
+        <button type="submit">submit (check fields)</button>
+        <button type="button" id="roundtrip">round-trip check</button>
+      </p>
     </form>
 
     <script type="module" src="/src/main.ts"></script>

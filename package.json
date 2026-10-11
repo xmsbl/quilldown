@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "ci": "npm run lint && npm run format:check && npm run typecheck && npm run build && npm run test"
+    "comment:ci": "build 必须在 typecheck 前：跨包类型走的是各包 dist 的 d.ts（消费者视角），dist 不入库。",
+    "ci": "npm run lint && npm run format:check && npm run build && npm run typecheck && npm run test"
   },
   "devDependencies": {
     "@eslint/js": "^9",
@@ -27,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-prettier": "^10",
     "globals": "^16",
+    "jsdom": "^30.1.2",
     "prettier": "^3",
     "typescript": "^5",
     "typescript-eslint": "^8",

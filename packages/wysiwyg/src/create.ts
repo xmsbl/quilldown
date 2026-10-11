@@ -5,8 +5,14 @@
  * `renderHtml` 产出** —— 所以 `getHtml()` 与 split 逐个字节一致，宿主也只需一套 sanitize。
  * 库不持久化任何东西：草稿 / 防丢稿 / 提交拦截归宿主，这里只暴露 `isDirty()` + 事件。
  */
-import { renderHtml as coreRenderHtml } from "@quilldown/core";
-import type { EditorInstance, EditorOptions, RenderHtml, UploadFn } from "@quilldown/core";
+import { bindForm, renderHtml as coreRenderHtml } from "@quilldown/core";
+import type {
+  EditorInstance,
+  EditorOptions,
+  FormBinding,
+  RenderHtml,
+  UploadFn,
+} from "@quilldown/core";
 
 import { EdodoWrite } from "../vendor/edodo/standalone.js";
 import type { EdodoContext, EdodoPlugin, EdodoSelectionInfo } from "../vendor/edodo/standalone.js";
@@ -65,11 +71,13 @@ export function create(mount: HTMLElement, options: WysiwygOptions = {}): Editor
   mount.style.setProperty("--qd-block-placeholder", JSON.stringify(strings.blockPlaceholder));
 
   let markdown = options.value ?? "";
-  /** `html` 对应的 markdown（`getHtml()` 按需重算的判据） */
-  let htmlSource = markdown;
+  /** `html` 对应的 markdown；`null` = 还没算过（首次 `getHtml()` 必须真算，不能拿空串） */
+  let htmlSource: string | null = null;
   let html = "";
   let dirty = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  /** 表单适配器（契约 §4）；默认开，找不到表单就静默不启用 */
+  let mirror: FormBinding | null = null;
 
   const uploadImage = adaptUpload(options.upload);
   const editor = new EdodoWrite(mount, {
@@ -105,6 +113,7 @@ export function create(mount: HTMLElement, options: WysiwygOptions = {}): Editor
     html = renderHtml(markdown);
     toc?.update(markdown);
     updateDirty();
+    mirror?.sync();
     options.onChange?.(markdown, html);
   }
 
@@ -117,7 +126,7 @@ export function create(mount: HTMLElement, options: WysiwygOptions = {}): Editor
 
   toc?.update(markdown);
 
-  return {
+  const instance: EditorInstance = {
     getMarkdown: () => editor.getMarkdown(),
     getHtml(): string {
       if (htmlSource !== markdown) {
@@ -136,6 +145,7 @@ export function create(mount: HTMLElement, options: WysiwygOptions = {}): Editor
     focus: () => editor.focus(),
     destroy(): void {
       if (timer) clearTimeout(timer);
+      mirror?.destroy();
       unbindKeys();
       unbindPlaceholder();
       toc?.destroy();
@@ -144,4 +154,10 @@ export function create(mount: HTMLElement, options: WysiwygOptions = {}): Editor
       mount.style.removeProperty("--qd-block-placeholder");
     },
   };
+
+  if (options.mirror !== false) {
+    mirror = bindForm(instance, mount, typeof options.mirror === "object" ? options.mirror : {});
+  }
+
+  return instance;
 }

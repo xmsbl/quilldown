@@ -18,6 +18,12 @@
 
 ```ts
 type UploadFn = (file: File) => Promise<{ url: string; name?: string }>;
+type FormField = HTMLInputElement | HTMLTextAreaElement;
+interface FormBindOptions {
+  form?: HTMLFormElement | null; // 缺省 = 挂载点向上最近 form.editor-shell → 任意 form
+  mdField?: FormField | null; // 传 null = 明确不要这个字段
+  htmlField?: FormField | null;
+}
 
 interface EditorOptions {
   value?: string; // 初始 markdown
@@ -31,6 +37,7 @@ interface EditorOptions {
   onDirtyChange?: (dirty: boolean) => void;
   tocDefault?: boolean;
   focusDefault?: boolean;
+  mirror?: boolean | FormBindOptions; // 表单字段镜像（§4）；省略 = 自动找，false = 关
   // 编辑器特定：layout / toolbar / …（wysiwyg 专用）
 }
 
@@ -73,8 +80,19 @@ function create(mount: HTMLElement, opts: EditorOptions): EditorInstance;
 
 ## 4. 表单适配器（库自带的可选便利件）
 
-- 作用：把 `onChange` 的结果写进 §3 的 md / html 隐藏字段（= 传统「表单里塞两个 hidden」的写法）。
-- 可关。关掉就自己用 `getMarkdown()` / `getHtml()`。
+- 作用：把编辑器当前值写进 §3 的 md / html 隐藏字段（= 传统「表单里塞两个 hidden」的写法）。
+- **默认开**：省略 `mirror` 就自动找；`mirror: false` 关掉改用 `getMarkdown()` / `getHtml()`；
+  传 `FormBindOptions` 则覆盖查找结果。core 也单独导出 `bindForm(editor, mount, opts)` 与
+  三个选择器常量（`FORM_SELECTOR` / `MD_FIELD_SELECTOR` / `HTML_FIELD_SELECTOR`）。
+- **查找链**（CONTRACT §3）：表单 = 挂载点向上最近的 `form.editor-shell`，回退任意 `form`；
+  md 字段 = `[data-editor-md]` → `[name$=".BodyMd"]`；html 字段 = `[data-editor-html]` →
+  `[name$=".BodyHtml"]`。`null` = 明确不要该字段；**表单或两个字段都找不到 = 不启用**（返回
+  `null`，不报错 —— 无表单的宿主本就不需要它）。
+- **行为三件套**：
+  1. 绑定即刻写一次 —— 否则「没改动就保存」时服务端拿到空 html，会被当成「JS 没跑」拒收；
+  2. **submit 捕获阶段**再刷一次 —— 编辑器内建去抖还没落盘的改动也不会丢；适配器**不拦提交**；
+  3. 字段上的 `input` → 回灌编辑器（`setMarkdown(v, { silent: true })`）—— 宿主草稿恢复的入口。
+- 编辑器每次变更落盘（去抖后）自动写字段；`onChange` 之前先写，宿主回调里直接读字段也是新值。
 - 每个宿主页**只装一个编辑器实例**（多实例抢同名字段 = 静默互相覆盖）。
 
 ## 5. 版本与纪律

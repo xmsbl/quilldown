@@ -1,9 +1,8 @@
 /**
- * 契约的**可执行版**（CONTRACT §5）：挂载 + 打字 + 上传 mock + 两个表单字段被填。
+ * 契约的**可执行版**（CONTRACT §5）：挂载 + 打字 + 上传 mock + 两个表单字段被填 + 往返幂等。
  *
- * 这里刻意只写「宿主那半」：DOM 标记（`data-editor-root` / `data-editor-mount` /
- * `data-editor-toc` / `data-editor-md` / `data-editor-html`）+ 两个回调 + 上传 mock。
- * 字段镜像是宿主自己做的（库的便利适配器 E3 才发）—— 用来证明 `onChange(md, html)` 够用。
+ * 宿主这半只写 DOM 标记与注入回调 —— **字段镜像由库的表单适配器做**（`mirror` 默认开，
+ * 见 CONTRACT §4）；想自己接管就 `mirror: false` 改用 `getMarkdown()` / `getHtml()`。
  */
 import "@quilldown/wysiwyg/index.css";
 
@@ -20,6 +19,7 @@ const htmlField = root.querySelector<HTMLInputElement>("[data-editor-html]");
 const stat = document.querySelector<HTMLElement>("#stat");
 const fields = document.querySelector<HTMLElement>("#fields");
 const dark = document.querySelector<HTMLInputElement>("#dark");
+const roundTrip = document.querySelector<HTMLButtonElement>("#roundtrip");
 
 /** 上传 mock：完全不连网 —— 回一个内联 SVG 的 data URL（走宿主的 `upload` 回调）。 */
 function mockUpload(file: File): Promise<{ url: string; name?: string }> {
@@ -40,7 +40,7 @@ const initial = [
   "",
   "## Field mirroring",
   "",
-  "The two hidden fields are filled by the **host**, not the library.",
+  "The two hidden fields are filled by the **library's form adapter** (`mirror` defaults on).",
   "",
   "## Code block",
   "",
@@ -56,30 +56,49 @@ function paint(dirty: boolean): void {
   if (stat) stat.textContent = `dirty: ${dirty ? "yes" : "no"}`;
 }
 
+function report(text: string): void {
+  if (fields) fields.textContent = text;
+}
+
+/** 字段 = 编辑器当前值（提交时看到的形状，与宿主序列化的一模一样）。 */
+function fieldsMatch(): boolean {
+  const md = mdField?.value ?? "";
+  const html = htmlField?.value ?? "";
+  return (
+    md.length > 0 && html.length > 0 && md === editor.getMarkdown() && html === editor.getHtml()
+  );
+}
+
 const editor = create(mount, {
   value: initial,
   locale: "en",
   upload: mockUpload,
+  // 字段镜像不归宿主：适配器写，宿主只在 onChange 里留个字数回显
   onChange(next, rendered) {
-    if (mdField) mdField.value = next;
-    if (htmlField) htmlField.value = rendered;
-    if (fields) fields.textContent = `${next.length} chars md → ${rendered.length} chars html`;
+    report(`${next.length} chars md → ${rendered.length} chars html`);
   },
   onDirtyChange: paint,
 });
 
-// 首次填充由宿主决定（库不主动回调）
-if (mdField) mdField.value = editor.getMarkdown();
-if (htmlField) htmlField.value = editor.getHtml();
-if (fields) {
-  fields.textContent = `${mdField?.value.length ?? 0} chars md → ${htmlField?.value.length ?? 0} chars html`;
-}
+report(`${mdField?.value.length ?? 0} chars md → ${htmlField?.value.length ?? 0} chars html`);
 paint(editor.isDirty());
 
 dark?.addEventListener("change", () => {
   document.documentElement.classList.toggle("dark", dark.checked);
 });
 
+roundTrip?.addEventListener("click", () => {
+  const before = editor.getMarkdown();
+  editor.setMarkdown(before, { silent: true });
+  report(
+    editor.getMarkdown() === before
+      ? "✓ round-trip: getMarkdown() is stable"
+      : "✗ round-trip changed the markdown",
+  );
+});
+
 document.querySelector<HTMLFormElement>("#shell")?.addEventListener("submit", (event) => {
   event.preventDefault();
+  // 适配器在 document 捕获阶段就刷过字段 → 这里看到的应当就是编辑器当前值
+  report(fieldsMatch() ? "✓ submit: both fields are filled" : "✗ submit: field mismatch");
 });
