@@ -1,0 +1,35 @@
+{
+  "name": "quilldown",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Host-agnostic Markdown editors (wysiwyg + split) sharing one render pipeline.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @quilldown/core && npm run build -w @quilldown/wysiwyg && npm run build -w @quilldown/split && npm run build -w @quilldown/host-example",
+    "test": "vitest run",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "ci": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "eslint": "^9",
+    "eslint-config-prettier": "^10",
+    "globals": "^16",
+    "prettier": "^3",
+    "typescript": "^5",
+    "typescript-eslint": "^8",
+    "vite": "^7",
+    "vite-plugin-dts": "^5",
+    "vitest": "^5"
+  }
+}
