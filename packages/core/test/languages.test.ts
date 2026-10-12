@@ -7,7 +7,7 @@ import { PRISM_LANGUAGES, prismGrammar } from "../src/index";
  * 漏一个（表里写了、组件没引）= 该语言代码块静默不高亮 —— 这条测试就是拦它的。
  */
 describe("语言集", () => {
-  it("冻结表 = 迁移前 Inkwell `wwwroot/lib/prism/*` 的 13 个文件", () => {
+  it("冻结表 = 13 个语言", () => {
     expect([...PRISM_LANGUAGES]).toEqual([
       "markup",
       "css",

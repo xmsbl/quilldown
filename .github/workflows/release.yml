@@ -40,5 +40,5 @@ jobs:
 
       - run: npm run ci
 
-      # --workspaces 跳过 private（host-example）；provenance 由 OIDC 自动生成（公开仓 + 公开包）
+      # provenance 由 OIDC 自动生成（公开仓 + 公开包）
       - run: npm publish --workspaces --access public

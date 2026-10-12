@@ -26,7 +26,7 @@ describe("wysiwyg 契约冒烟（真编辑器 + 表单适配器）", () => {
 
   it("挂载即把 md / html 写进字段（未改动就保存也不会交空字段）", () => {
     const { mount, mdField, htmlField } = mountHost();
-    const editor = create(mount, { value: "# hi\n\nbody" });
+    const editor = create(mount, { value: "# hi\n\nbody", mirror: true });
 
     expect(mdField.value).toBe("# hi\n\nbody");
     expect(htmlField.value).toContain("<h1");
@@ -56,7 +56,7 @@ describe("wysiwyg 契约冒烟（真编辑器 + 表单适配器）", () => {
 
   it("destroy() 之后字段不再被写", () => {
     const { mount, mdField } = mountHost();
-    const editor = create(mount, { value: "# hi" });
+    const editor = create(mount, { value: "# hi", mirror: true });
 
     editor.destroy();
     editor.setMarkdown("# after destroy");

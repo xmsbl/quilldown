@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quilldown — Split demo</title>
+    <link rel="stylesheet" href="https://unpkg.com/@xmsbl/quilldown-split/index.css" />
+    <style>
+      body {
+        margin: 0;
+        font:
+          15px/1.6 system-ui,
+          sans-serif;
+      }
+      header {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid #ddd;
+      }
+      header a {
+        margin-left: auto;
+      }
+      #editor {
+        height: calc(100vh - 3rem);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NOTE FOR AI: see examples/AI-CONTRACT.md. Edit only the create() call and the DOM. -->
+    <header>
+      <strong>Quilldown · split</strong>
+      <a href="./wysiwyg.html">wysiwyg demo →</a>
+    </header>
+
+    <div id="editor"></div>
+
+    <script src="https://unpkg.com/@xmsbl/quilldown-core/dist/index.iife.js"></script>
+    <script src="https://unpkg.com/@xmsbl/quilldown-split/dist/index.iife.js"></script>
+    <script>
+      window.QuilldownSplit.create(document.getElementById("editor"), {
+        value: "# Split\n\nWrite on the left; the right pane follows. Scroll either side.\n",
+      });
+    </script>
+  </body>
+</html>

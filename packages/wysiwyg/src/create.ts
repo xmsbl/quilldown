@@ -155,7 +155,7 @@ export function create(mount: HTMLElement, options: WysiwygOptions = {}): Editor
     },
   };
 
-  if (options.mirror !== false) {
+  if (options.mirror === true || typeof options.mirror === "object") {
     mirror = bindForm(instance, mount, typeof options.mirror === "object" ? options.mirror : {});
   }
 

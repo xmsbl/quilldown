@@ -68,7 +68,7 @@ const prismHighlight: Highlight = (code, language) => {
 };
 
 /**
- * 渲染器 —— 落库 HTML 的**唯一**产出者（契约 v1 硬规则）。
+ * 渲染器 —— 落库 HTML 的**唯一**产出者（契约 v2 硬规则）。
  *
  * 只用普通对象覆盖**已存在的三个方法**：marked 对未知方法名直接抛错，
  * 而 class 实例的私有字段会成为 renderer 的自有属性、被当成「新方法」→ 所以不用 class。

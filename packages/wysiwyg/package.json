@@ -1,6 +1,6 @@
 {
   "name": "@xmsbl/quilldown-wysiwyg",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "WYSIWYG Markdown editor (contenteditable, edodo-write based).",
   "license": "MIT",
   "author": "chengshy123 <88560859@qq.com>",
@@ -44,7 +44,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@xmsbl/quilldown-core": "^0.1.0"
+    "@xmsbl/quilldown-core": "^0.2.0"
   },
   "scripts": {
     "build": "node scripts/build.mjs",

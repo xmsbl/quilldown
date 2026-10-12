@@ -59,7 +59,7 @@ describe("split 契约冒烟（真编辑器 + 表单适配器）", () => {
 
   it("挂载即把 md / html 写进字段（未改动就保存也不会交空字段）", () => {
     const { mount, mdField, htmlField } = mountHost();
-    const editor = create(mount, { value: SOURCE });
+    const editor = create(mount, { value: SOURCE, mirror: true });
 
     expect(mdField.value).toBe(SOURCE);
     expect(htmlField.value).toContain("<h1");
@@ -80,7 +80,7 @@ describe("split 契约冒烟（真编辑器 + 表单适配器）", () => {
     vi.useFakeTimers();
     const { mount, htmlField } = mountHost();
     const onChange = vi.fn();
-    const editor = create(mount, { value: "", onChange });
+    const editor = create(mount, { value: "", onChange, mirror: true });
 
     typeInto(mount, SOURCE);
     expect(onChange).not.toHaveBeenCalled(); // 去抖窗口里还没落盘
@@ -121,7 +121,7 @@ describe("split 契约冒烟（真编辑器 + 表单适配器）", () => {
 
   it("isDirty() 跟着左栏走，destroy() 之后不再写字段", () => {
     const { mount, mdField } = mountHost();
-    const editor = create(mount, { value: "初始" });
+    const editor = create(mount, { value: "初始", mirror: true });
 
     expect(editor.isDirty()).toBe(false);
     editor.setMarkdown("改了");
@@ -143,7 +143,7 @@ describe("split 契约冒烟（真编辑器 + 表单适配器）", () => {
 
   it("mode:'tab' 出页签；点预览把左栏收起来（仍是同一个实例）", () => {
     const { mount, htmlField } = mountHost();
-    const editor = create(mount, { value: SOURCE, mode: "tab" });
+    const editor = create(mount, { value: SOURCE, mode: "tab", mirror: true });
     const root = mount.querySelector<HTMLElement>(".editor-split")!;
 
     expect(root.dataset.qdMode).toBe("tab");

@@ -318,7 +318,7 @@ export function create(mount: HTMLElement, options: SplitOptions = {}): EditorIn
     },
   };
 
-  if (options.mirror !== false) {
+  if (options.mirror === true || typeof options.mirror === "object") {
     mirror = bindForm(instance, mount, typeof options.mirror === "object" ? options.mirror : {});
   }
   if (options.autofocus === true) source.focus();

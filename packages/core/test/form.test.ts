@@ -23,15 +23,12 @@ function makeEditor(initial = { md: "# hi", html: "<h1>hi</h1>" }) {
   return { editor, state, setMarkdown };
 }
 
-/** 挂一棵「宿主那半」的标记；`attrs=false` 时只留 name 后缀（走回退链）。 */
-function mountForm({ shellClass = true, attrs = true, fields = true } = {}) {
-  const cls = shellClass ? 'class="editor-shell"' : "";
-  const md = attrs ? "data-editor-md" : 'name="Form.BodyMd"';
-  const html = attrs ? "data-editor-html" : 'name="Form.BodyHtml"';
+/** 挂一棵宿主标记：挂载点 + 两个显式字段。 */
+function mountForm({ fields = true } = {}) {
   document.body.innerHTML = `
-    <form id="f" ${cls}>
+    <form id="f">
       <div data-editor-mount></div>
-      ${fields ? `<textarea id="md" ${md}></textarea><input id="html" ${html} />` : ""}
+      ${fields ? `<textarea id="md" data-editor-md></textarea><input id="html" data-editor-html />` : ""}
     </form>`;
   return {
     form: document.querySelector<HTMLFormElement>("#f")!,
@@ -53,7 +50,7 @@ beforeEach(() => {
 
 describe("表单适配器（CONTRACT §3 / §4）", () => {
   it("冻结的选择器常量", () => {
-    expect(FORM_SELECTOR).toBe("form.editor-shell");
+    expect(FORM_SELECTOR).toBe("form");
     expect(MD_FIELD_SELECTOR).toBe("[data-editor-md]");
     expect(HTML_FIELD_SELECTOR).toBe("[data-editor-html]");
   });
@@ -123,34 +120,16 @@ describe("表单适配器（CONTRACT §3 / §4）", () => {
     expect(setMarkdown).toHaveBeenCalledTimes(1);
   });
 
-  it("没有 data 属性时按 name 后缀认字段（Razor 的 Form. 前缀照样命中）", () => {
-    const { mount, mdField, htmlField } = mountForm({ attrs: false });
-    const { editor } = makeEditor();
-
-    bindForm(editor, mount);
-
-    expect(mdField?.value).toBe("# hi");
-    expect(htmlField?.value).toBe("<h1>hi</h1>");
-  });
-
-  it("没有表单（或两个字段都没有）→ 返回 null，不报错", () => {
+  it("只认显式 data 属性；没有字段 → 返回 null，不报错", () => {
     const { editor } = makeEditor();
 
     document.body.innerHTML = `<div data-editor-mount></div>`;
     const bare = document.querySelector<HTMLElement>("[data-editor-mount]")!;
     expect(bindForm(editor, bare)).toBeNull();
 
-    document.body.innerHTML = `<form class="editor-shell"><div data-editor-mount></div></form>`;
+    document.body.innerHTML = `<form><div data-editor-mount></div></form>`;
     const noFields = document.querySelector<HTMLElement>("[data-editor-mount]")!;
     expect(bindForm(editor, noFields)).toBeNull();
-  });
-
-  it("非 editor-shell 的表单仍能被最近的 form 命中（单表单页不用加类）", () => {
-    const { mount, mdField } = mountForm({ shellClass: false });
-    const { editor } = makeEditor();
-
-    expect(bindForm(editor, mount)).not.toBeNull();
-    expect(mdField?.value).toBe("# hi");
   });
 
   it("显式 form / 字段可覆盖查找（挂载点在表单外也能接）", () => {

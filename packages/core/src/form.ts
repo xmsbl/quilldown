@@ -8,17 +8,13 @@
  */
 import type { EditorInstance, FormBindOptions } from "./types.js";
 
-/** 适配器默认认的表单（CONTRACT §3）；找不到时回退「挂载点向上最近的 form」。 */
-export const FORM_SELECTOR = "form.editor-shell";
+/** 适配器默认认的表单：挂载点向上最近的 `<form>`（不依赖任何宿主类名）。 */
+export const FORM_SELECTOR = "form";
 
-/** md 真相源字段（显式属性）。 */
+/** markdown 真相源字段（显式）。 */
 export const MD_FIELD_SELECTOR = "[data-editor-md]";
-/** html 产物字段（显式属性）。 */
+/** HTML 产物字段（显式）。 */
 export const HTML_FIELD_SELECTOR = "[data-editor-html]";
-
-/** 无显式属性时的回退：按 name 后缀认（Razor 的 `Form.` 前缀照样命中）。 */
-const MD_FALLBACK_SELECTOR = '[name$=".BodyMd"]';
-const HTML_FALLBACK_SELECTOR = '[name$=".BodyHtml"]';
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 
@@ -28,8 +24,8 @@ export interface FormBinding {
   destroy(): void;
 }
 
-function pickField(form: HTMLFormElement, primary: string, fallback: string): Field | null {
-  return form.querySelector<Field>(primary) ?? form.querySelector<Field>(fallback) ?? null;
+function pickField(form: HTMLFormElement, selector: string): Field | null {
+  return form.querySelector<Field>(selector);
 }
 
 /**
@@ -42,20 +38,14 @@ export function bindForm(
   options: FormBindOptions = {},
 ): FormBinding | null {
   const form =
-    options.form !== undefined
-      ? options.form
-      : (mount.closest<HTMLFormElement>(FORM_SELECTOR) ?? mount.closest<HTMLFormElement>("form"));
+    options.form !== undefined ? options.form : mount.closest<HTMLFormElement>(FORM_SELECTOR);
   if (!form) return null;
 
   // `null` = 显式不要该字段（与「没传 → 自动找」区分开）
   const mdField =
-    options.mdField !== undefined
-      ? options.mdField
-      : pickField(form, MD_FIELD_SELECTOR, MD_FALLBACK_SELECTOR);
+    options.mdField !== undefined ? options.mdField : pickField(form, MD_FIELD_SELECTOR);
   const htmlField =
-    options.htmlField !== undefined
-      ? options.htmlField
-      : pickField(form, HTML_FIELD_SELECTOR, HTML_FALLBACK_SELECTOR);
+    options.htmlField !== undefined ? options.htmlField : pickField(form, HTML_FIELD_SELECTOR);
   if (!mdField && !htmlField) return null;
 
   function sync(): void {
@@ -64,7 +54,7 @@ export function bindForm(
   }
 
   /**
-   * 提交前必刷：捕获阶段 —— 早于校验 / 序列化 / htmx 的 submit 处理。
+   * 提交前必刷：捕获阶段 —— 早于宿主的校验 / 序列化。
    * 少了这一步，编辑器内建去抖还没落盘的改动会**静默丢**（表单读到的是上一次的值）。
    */
   function onSubmitCapture(event: Event): void {

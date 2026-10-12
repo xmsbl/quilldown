@@ -8,7 +8,7 @@
  *
  * 口径：
  * - `attw --profile esm-only`：三个包都是纯 ESM（`type: module` + 只有 `import` 条件），
- *   这是有意的取舍而不是缺陷（Inkwell 侧走 IIFE 产物，ESM 消费者本来就该用 `import`）。
+ *   这是有意的取舍而不是缺陷（IIFE 消费者走 `unpkg` 产物，ESM 消费者本来就该用 `import`）。
  * - `--exclude-entrypoints ./index.css`：CSS 子路径没有 JS 语义，attw 对任何非 JS
  *   子路径都会报 `no-resolution` 假阳。
  * - **走的是 `--pack`（真 `npm pack` 后的 tarball）**，所以看到的就是发布出去的样子。

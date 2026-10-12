@@ -1,5 +1,5 @@
 /**
- * 契约 v1 的共享类型（`CONTRACT.md` §2）。
+ * 契约 v2 的共享类型（`docs/CONTRACT.md` §2）。
  * 编辑器包（wysiwyg / split）与宿主都对这些名字编程 —— 改动等于改契约。
  */
 
@@ -35,7 +35,7 @@ export interface EditorOptions {
   onDirtyChange?: (dirty: boolean) => void;
   tocDefault?: boolean;
   focusDefault?: boolean;
-  /** 表单适配器（CONTRACT §4）：省略 = 自动找字段；`false` = 关；对象 = 覆盖查找。 */
+  /** 表单适配器（CONTRACT §4）：默认关；`true` = 自动找字段；对象 = 覆盖查找。 */
   mirror?: boolean | FormBindOptions;
   // 编辑器特定选项（wysiwyg 的 layout / toolbar 等）由各自包 `extends EditorOptions`，
   // 不开索引签名 —— 拼错的选项名会静默失效，那正是要避免的那类 bug。

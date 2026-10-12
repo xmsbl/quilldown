@@ -67,7 +67,7 @@ describe("dist/index.iife.js", () => {
   it("自带全部 13 种语言（组件没被摇掉）", () => {
     const { api, prism } = loadArtifact();
 
-    expect(api.CONTRACT_VERSION).toBe("1");
+    expect(api.CONTRACT_VERSION).toBe("2");
     expect([...api.PRISM_LANGUAGES]).toHaveLength(13);
     for (const language of api.PRISM_LANGUAGES) {
       expect(Object.keys(prism.languages), language).toContain(language);
