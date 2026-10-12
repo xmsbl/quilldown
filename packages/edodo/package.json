@@ -1,7 +1,6 @@
 {
   "name": "@xmsbl/quilldown-edodo",
   "version": "0.10.0",
-  "private": true,
   "type": "module",
   "description": "Fork of edodo-write (MIT) kept as an internal package. Upstream: https://github.com/vivmagarwal/edodo-write @ a7960a0 (v0.10.0). See UPSTREAM.md.",
   "license": "MIT",
@@ -26,11 +25,15 @@
       "import": "./dist-lib/parse.js"
     },
     "./styles.css": "./dist-lib/edodo-write.css",
+    "./content.css": "./dist-lib/edodo-content.css",
     "./package.json": "./package.json"
   },
   "files": [
     "dist-lib"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18"
   },

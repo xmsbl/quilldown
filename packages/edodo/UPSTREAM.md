@@ -55,6 +55,17 @@
 
 → 旧机制（`locales/*.tsv` + `build.mjs` 的 i18n 插件 + vendor 原件）在接线批次里删除。
 
+### 批次 4：可发布 + CSS 拆出 content-only
+
+- 去掉 `private`（`split` / `wysiwyg` / `core` 是**要发布**的包，装不了私有 workspace 包），
+  加 `publishConfig.access = public`
+- `src/content.css` = **内容排版**（token + 块级排版）；`src/styles.css` 用 `@import` 引它
+  → **一份源出两份**：
+  - `dist-lib/edodo-write.css`（编辑器皮肤，含内容排版）
+  - `dist-lib/edodo-content.css`（**宿主前台只用这份**：产物 HTML 放进 `class="ew-content"` 的容器即可）
+  - exports 加 `./content.css`
+- 随之：token 的宿主选择器从 `.ew` 扩成 `:where(.ew, .ew-content)`，暗色 / 浅色覆盖同步
+
 ## 同步上游
 
 ```bash
