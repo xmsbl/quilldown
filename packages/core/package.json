@@ -1,7 +1,7 @@
 {
   "name": "@xmsbl/quilldown-core",
-  "version": "0.2.0",
-  "description": "Contract constants + the single Markdown-to-HTML render pipeline.",
+  "version": "0.3.0",
+  "description": "Contract constants + form binding; re-exports the Markdown-to-HTML pipeline from @xmsbl/quilldown-render.",
   "license": "MIT",
   "author": "chengshy123 <88560859@qq.com>",
   "keywords": [
@@ -43,6 +43,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@xmsbl/quilldown-render": "^0.1.0"
+    "@xmsbl/quilldown-render": "^0.3.0"
   }
 }

@@ -1,8 +1,23 @@
 {
   "name": "@xmsbl/quilldown-render",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "The single Markdown-to-HTML pipeline (marked GFM + Prism + heading ids + line anchors).",
   "license": "MIT",
+  "author": "chengshy123 <88560859@qq.com>",
+  "keywords": [
+    "markdown",
+    "marked",
+    "prismjs",
+    "syntax-highlighting",
+    "renderer"
+  ],
+  "homepage": "https://github.com/xmsbl/quilldown#readme",
+  "bugs": "https://github.com/xmsbl/quilldown/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xmsbl/quilldown.git",
+    "directory": "packages/render"
+  },
   "type": "module",
   "comment:sideEffects": "不能标 false：入口有真副作用（加载 Prism 语言组件 + 挂 globalThis.Prism），标 false 会被摇掉 → 代码块静默不高亮。",
   "sideEffects": true,

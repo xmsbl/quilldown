@@ -1,10 +1,17 @@
 {
   "name": "@xmsbl/quilldown-edodo",
-  "version": "0.10.0",
+  "version": "0.3.0",
   "type": "module",
-  "description": "Fork of edodo-write (MIT) kept as an internal package. Upstream: https://github.com/vivmagarwal/edodo-write @ a7960a0 (v0.10.0). See UPSTREAM.md.",
+  "description": "Fork of edodo-write (MIT) kept as an internal package — install @xmsbl/quilldown-wysiwyg instead. Upstream: https://github.com/vivmagarwal/edodo-write @ a7960a0 (upstream v0.10.0; this package's version is independent of upstream's). See UPSTREAM.md.",
   "license": "MIT",
   "author": "vivmagarwal",
+  "homepage": "https://github.com/xmsbl/quilldown#readme",
+  "bugs": "https://github.com/xmsbl/quilldown/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xmsbl/quilldown.git",
+    "directory": "packages/edodo"
+  },
   "sideEffects": [
     "**/*.css"
   ],
@@ -43,7 +50,7 @@
   },
   "dependencies": {
     "@joplin/turndown-plugin-gfm": "^1.0.61",
-    "@xmsbl/quilldown-render": "^0.1.0",
+    "@xmsbl/quilldown-render": "^0.3.0",
     "dom-serializer": "^2.0.0",
     "domhandler": "^5.0.3",
     "htmlparser2": "^9.1.0",
