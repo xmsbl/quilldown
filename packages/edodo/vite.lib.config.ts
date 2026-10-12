@@ -1,5 +1,4 @@
 import { defineConfig } from "vite";
-import { copyFileSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 
@@ -41,16 +40,4 @@ export default defineConfig({
       },
     },
   },
-  plugins: [
-    {
-      // 宿主**前台**只需要「内容排版」那一份 → 单独拷一份（源仍是 src/content.css，一份源出两份）
-      name: "edodo:content-css",
-      closeBundle() {
-        copyFileSync(
-          fileURLToPath(new URL("./src/content.css", import.meta.url)),
-          fileURLToPath(new URL("./dist-lib/edodo-content.css", import.meta.url)),
-        );
-      },
-    },
-  ],
 });

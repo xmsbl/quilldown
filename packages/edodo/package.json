@@ -25,7 +25,6 @@
       "import": "./dist-lib/parse.js"
     },
     "./styles.css": "./dist-lib/edodo-write.css",
-    "./content.css": "./dist-lib/edodo-content.css",
     "./package.json": "./package.json"
   },
   "files": [

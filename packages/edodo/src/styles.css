@@ -9,9 +9,10 @@
  *
  * Consumers: `import "edodo-write/styles.css";`
  *
- * 内容排版（token + 块级排版）在 `content.css` —— 宿主**前台只需要那一份**。
+ * 内容排版（token + 块级排版）在 `@xmsbl/quilldown-render/content.css` ——
+ * 宿主**前台只需要那一份**，编辑面与前台共用一份源。
  */
-@import "./content.css";
+@import "@xmsbl/quilldown-render/content.css";
 
 /* token / 暗色覆盖 / 基础排版 → `content.css`（见文件头 @import） */
 

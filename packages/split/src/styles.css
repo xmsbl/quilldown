@@ -1,5 +1,9 @@
 /**
- * `@xmsbl/quilldown-split` 自带样式 —— 分屏的壳（工具条 / 两栏）+ 预览正文的基础排版。
+ * `@xmsbl/quilldown-split` 自带样式 —— 分屏的壳（工具条 / 两栏）。
+ *
+ * **预览正文排版不在这里**：走共享的 `@xmsbl/quilldown-render/content.css`
+ * （预览容器带 `.ew-content`，创建构里拼在本文件之**前**）——
+ * 所以分屏预览与所见即所得的渲染**看起来一致**。
  *
  * 三条纪律（与 `@xmsbl/quilldown-wysiwyg` 一致）：
  *  · 颜色只走 `--qd-*`（每个使用处带默认值）—— 宿主接自己的调色板就覆盖这几个变量；
@@ -172,8 +176,10 @@
 /* ── 右栏：预览 ─────────────────────────────────────────────────────────────── */
 [data-editor-mount] .editor-split-body {
   padding: 14px 16px;
-  font-size: 15px;
-  line-height: 1.75;
+  /* 排版与 token 颜色来自 content.css（容器带 `.ew-content`，见 create.ts）——
+     这里只做分屏自己的布局：中和内容层的居中 / 宽度约束（预览栏本就窄）。 */
+  max-width: none;
+  margin: 0;
   word-wrap: break-word;
 }
 
@@ -188,118 +194,5 @@
   display: none;
 }
 
-[data-editor-mount] .editor-split-body > :first-child {
-  margin-top: 0;
-}
-
-[data-editor-mount] .editor-split-body h1,
-[data-editor-mount] .editor-split-body h2,
-[data-editor-mount] .editor-split-body h3,
-[data-editor-mount] .editor-split-body h4,
-[data-editor-mount] .editor-split-body h5,
-[data-editor-mount] .editor-split-body h6 {
-  margin: 1.4em 0 0.6em;
-  line-height: 1.3;
-}
-
-[data-editor-mount] .editor-split-body h1 {
-  font-size: 1.7em;
-}
-
-[data-editor-mount] .editor-split-body h2 {
-  font-size: 1.4em;
-}
-
-[data-editor-mount] .editor-split-body h3 {
-  font-size: 1.2em;
-}
-
-[data-editor-mount] .editor-split-body p,
-[data-editor-mount] .editor-split-body ul,
-[data-editor-mount] .editor-split-body ol,
-[data-editor-mount] .editor-split-body blockquote,
-[data-editor-mount] .editor-split-body table {
-  margin: 0 0 1em;
-}
-
-[data-editor-mount] .editor-split-body ul,
-[data-editor-mount] .editor-split-body ol {
-  padding-left: 1.5em;
-}
-
-[data-editor-mount] .editor-split-body li + li {
-  margin-top: 0.25em;
-}
-
-[data-editor-mount] .editor-split-body a {
-  color: var(--qd-accent);
-}
-
-[data-editor-mount] .editor-split-body img {
-  max-width: 100%;
-  height: auto;
-}
-
-[data-editor-mount] .editor-split-body code {
-  padding: 0.15em 0.4em;
-  font-family: var(--qd-split-font);
-  font-size: 0.9em;
-  background: var(--qd-bg-subtle);
-  border-radius: 4px;
-}
-
-[data-editor-mount] .editor-split-body pre {
-  margin: 0 0 1em;
-  padding: 12px 14px;
-  overflow: auto;
-  background: var(--qd-bg-subtle);
-  border-radius: 8px;
-}
-
-[data-editor-mount] .editor-split-body pre code {
-  padding: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  background: transparent;
-  border-radius: 0;
-}
-
-[data-editor-mount] .editor-split-body blockquote {
-  padding: 0.2em 0 0.2em 1em;
-  color: var(--qd-fg-muted);
-  border-left: 3px solid var(--qd-border-strong);
-}
-
-[data-editor-mount] .editor-split-body hr {
-  height: 1px;
-  margin: 1.6em 0;
-  background: var(--qd-border);
-  border: 0;
-}
-
-[data-editor-mount] .editor-split-body table {
-  border-collapse: collapse;
-  display: block;
-  max-width: 100%;
-  overflow: auto;
-}
-
-[data-editor-mount] .editor-split-body th,
-[data-editor-mount] .editor-split-body td {
-  padding: 6px 12px;
-  border: 1px solid var(--qd-border);
-}
-
-[data-editor-mount] .editor-split-body th {
-  background: var(--qd-bg-subtle);
-}
-
-/* 任务列表：core 出裸 `<input>`，对齐得像回事（不引任何图标字体） */
-[data-editor-mount] .editor-split-body .contains-task-list {
-  padding-left: 0.4em;
-  list-style: none;
-}
-
-[data-editor-mount] .editor-split-body .task-list-item-checkbox {
-  margin-right: 0.4em;
-}
+/* 预览正文的排版 / 代码高亮 / 任务列表样式 → `@xmsbl/quilldown-render/content.css`
+   （容器 `.editor-split-body.ew-content`）。这里不再重复一份，避免两边漂移。 */
