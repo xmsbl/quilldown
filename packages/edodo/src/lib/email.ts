@@ -19,7 +19,7 @@
  * error falls back to an escaped `<p>`.
  */
 
-import { Marked } from "marked";
+import { Marked, type Renderer, type Tokens } from "marked";
 import { parseDocument } from "htmlparser2";
 import render from "dom-serializer";
 import { isTag, type ChildNode, type Element } from "domhandler";
@@ -244,42 +244,48 @@ export { sanitizeEmailHtml };
 
 // ── The marked email renderer ────────────────────────────────────────────────
 
+/**
+ * marked v13+ 的 renderer 方法收 **单个 token 对象**（v12 是位置参数）；
+ * 子节点的 HTML 由 `this.parser.parse*` 渲染。
+ */
 function buildRenderer(theme: EmailStyleTokens): Record<string, unknown> {
   return {
-    heading(text: string, level: number): string {
-      const lvl = Math.min(Math.max(level, 2), 4);
-      return `<h${lvl} style="${theme.heading}">${text}</h${lvl}>`;
+    heading(this: Renderer, { tokens, depth }: Tokens.Heading): string {
+      const lvl = Math.min(Math.max(depth, 2), 4);
+      return `<h${lvl} style="${theme.heading}">${this.parser.parseInline(tokens)}</h${lvl}>`;
     },
-    paragraph(text: string): string {
-      return `<p style="${theme.paragraph}">${text}</p>`;
+    paragraph(this: Renderer, { tokens }: Tokens.Paragraph): string {
+      return `<p style="${theme.paragraph}">${this.parser.parseInline(tokens)}</p>`;
     },
-    link(href: string, title: string | null | undefined, text: string): string {
+    link(this: Renderer, { href, title, tokens }: Tokens.Link): string {
       const t = title ? ` title="${escapeHtml(title)}"` : "";
-      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" style="${theme.link}"${t}>${text}</a>`;
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" style="${theme.link}"${t}>${this.parser.parseInline(tokens)}</a>`;
     },
-    image(href: string, _title: string | null | undefined, text: string): string {
+    image({ href, text }: Tokens.Image): string {
       // Mail clients butcher inline images → link to the asset instead.
       const label = text || href;
       return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" style="${theme.link}">${escapeHtml(label)}</a>`;
     },
-    code(code: string, _infostring: string | undefined): string {
-      return `<pre style="${theme.pre}"><code>${escapeHtml(code)}</code></pre>`;
+    code({ text }: Tokens.Code): string {
+      return `<pre style="${theme.pre}"><code>${escapeHtml(text)}</code></pre>`;
     },
-    codespan(text: string): string {
+    codespan({ text }: Tokens.Codespan): string {
       return `<code style="${theme.code}">${text}</code>`;
     },
-    blockquote(quote: string): string {
-      return `<blockquote style="${theme.blockquote}">${quote}</blockquote>`;
+    blockquote(this: Renderer, { tokens }: Tokens.Blockquote): string {
+      return `<blockquote style="${theme.blockquote}">${this.parser.parse(tokens)}</blockquote>`;
     },
-    list(body: string, ordered: boolean): string {
-      const tag = ordered ? "ol" : "ul";
+    list(this: Renderer, token: Tokens.List): string {
+      const tag = token.ordered ? "ol" : "ul";
+      const body = token.items.map((item) => this.listitem(item)).join("");
       return `<${tag} style="${theme.list}">${body}</${tag}>`;
     },
-    listitem(text: string): string {
-      return `<li>${text}</li>`;
+    listitem(this: Renderer, item: Tokens.ListItem): string {
+      // marked 18 的 `Parser.parse` 只收 tokens（loose 由 token 形状表达）。
+      return `<li>${this.parser.parse(item.tokens)}</li>`;
     },
-    del(text: string): string {
-      return `<s style="text-decoration:line-through;">${text}</s>`;
+    del(this: Renderer, { tokens }: Tokens.Del): string {
+      return `<s style="text-decoration:line-through;">${this.parser.parseInline(tokens)}</s>`;
     },
     hr(): string {
       return `<hr style="${theme.hr}"/>`;

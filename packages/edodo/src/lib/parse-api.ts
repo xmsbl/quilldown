@@ -308,6 +308,15 @@ export function parseTokens(md: string, opts: { plugins?: EdodoPlugin[] } = {}):
       let start = raw ? s.indexOf(raw, cursor) : cursor;
       if (start < 0) start = cursor;
       const end = start + raw.length;
+      // marked v13+ 把块之间的空行拆成独立的 `space` token（v12 是并进块自己的 raw）。
+      // 这里把空行并回**前一个块**的 range：既保持「块级 range 精确」的既有契约，
+      // 也不会多出 v12 没有的节点。
+      if (tok.type === "space") {
+        const prev = nodes[nodes.length - 1];
+        if (prev) prev.range[1] = end;
+        cursor = end > cursor ? end : cursor;
+        continue;
+      }
       const node: TokenNode = { type: normType(String(tok.type)), range: [start, end] };
       const attrs = tokenAttrs(tok);
       if (attrs) node.attrs = attrs;

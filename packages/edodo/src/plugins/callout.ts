@@ -16,6 +16,7 @@
  */
 
 import { definePlugin, type EdodoPlugin } from "../lib/index.js";
+import type { Renderer, Tokens } from "marked";
 
 export const CALLOUT_KINDS = ["note", "tip", "important", "warning", "caution"] as const;
 export type CalloutKind = (typeof CALLOUT_KINDS)[number];
@@ -79,8 +80,10 @@ export function callout(): EdodoPlugin {
     markdown: {
       marked: [{
         renderer: {
-          // marked v12 renderer: receives the blockquote's inner HTML.
-          blockquote(quote: string): string | false {
+          // marked v13+ 的 renderer 收到的是 **token 对象**（v12 是位置参数）：
+          // 内层 HTML 得自己 parse。
+          blockquote(this: Renderer, token: Tokens.Blockquote): string | false {
+            const quote = this.parser.parse(token.tokens);
             const m = /^<p>\s*\[!(\w+)\]\s*(?:<br\s*\/?>\s*|\n)?/i.exec(quote);
             if (!m || !CALLOUT_KINDS.includes(m[1].toLowerCase() as CalloutKind)) return false;
             const kind = m[1].toLowerCase();

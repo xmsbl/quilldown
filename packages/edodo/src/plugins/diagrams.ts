@@ -18,6 +18,7 @@
 import { definePlugin, type EdodoPlugin, type EditorContext } from "../lib/index.js";
 import { createWidget, mountWidgets, wireWidgetEditing, escapeAttr, type WidgetSpec } from "./widget.js";
 import type TurndownService from "turndown";
+import type { Tokens } from "marked";
 import type { EdodoDraw as EdodoDrawEngine } from "edododraw";
 
 declare module "../core/types.js" {
@@ -131,13 +132,12 @@ function buildDiagramsPlugin(
     markdown: {
       marked: [{
         renderer: {
-          // marked v12: code(code, infostring, escaped). Returning false falls
-          // through to the default code rendering — an unregistered language
-          // (```js, bare ```) must stay an ordinary code block.
-          code(code: string, infostring: string | undefined): string | false {
+          // marked v13+：renderer 收到 **token 对象**（v12 是位置参数）。返回 false
+          // 回落到默认 code 渲染 —— 未注册的语言（```js、裸 ```）必须保持普通代码块。
+          code({ text, lang: infostring }: Tokens.Code): string | false {
             const lang = (infostring ?? "").trim().split(/\s+/)[0] ?? "";
             if (!lang || !(lang in renderers)) return false;
-            return `<figure data-widget="${KIND}" data-lang="${escapeAttr(lang)}" data-source="${escapeAttr(code)}"></figure>\n`;
+            return `<figure data-widget="${KIND}" data-lang="${escapeAttr(lang)}" data-source="${escapeAttr(text)}"></figure>\n`;
           },
         },
       }],

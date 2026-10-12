@@ -11,7 +11,20 @@
 
 ## 与上游的差异（每批改动记到这里）
 
-- （待填）
+### 批次 1：marked 12 → 18（`package.json`）
+
+上游写的是 marked 12 的**位置参数 renderer**；v13+ 改成**单个 token 对象**。四处改动：
+
+| 文件 | 改动 |
+| --- | --- |
+| `src/lib/email.ts` | `buildRenderer` 全部走 token 对象；子节点用 `this.parser.parse*` 渲染；`listitem` 按 `Parser.parse(tokens)` 单参数调用 |
+| `src/plugins/callout.ts` | `blockquote(quote)` → `blockquote(token)` + `this.parser.parse(token.tokens)` 后再匹配 `[!NOTE]` |
+| `src/plugins/diagrams.ts` | `code(code, infostring)` → `code({ text, lang })` |
+| `src/lib/parse-api.ts` | marked 18 把块间空行拆成独立 `space` token → 并回**前一个块**的 range，保持 v12 的节点形状与「块级 range 精确」契约 |
+
+其余 `renderer(token)` 形式的扩展（highlight / details / footnote / tags / math / emoji / file）在 18 下无需改。
+
+依赖去重：`marked` 全仓只剩一份 18.1.0（core 与 edodo 共用）。
 
 ## 同步上游
 
