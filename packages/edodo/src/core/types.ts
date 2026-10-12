@@ -450,6 +450,8 @@ export interface EditorOptions {
   onSubmit?: (editor: EdodoWrite) => void;
   /** Placeholder shown when the document is empty. */
   placeholder?: string;
+  /** UI language for the editor's built-in strings (`"en"` default, `"zh"`). */
+  locale?: string;
   /** Focus the editor after mounting. */
   autofocus?: boolean;
   /** Render-only mode — no editing, no toolbars. Toggleable at runtime. */

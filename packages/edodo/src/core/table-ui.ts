@@ -21,6 +21,7 @@
 
 import type { EditorUI } from "./types.js";
 import { placeCaretAtStart } from "./dom.js";
+import { t } from "./i18n.js";
 
 export interface TableControlsDeps {
   /** Run a structural mutation as ONE undo step + change event. */
@@ -68,10 +69,10 @@ export class TableControls {
       host.appendChild(el);
       return el;
     };
-    this.colHandle = make("ew-th-col", "⋯", "Column options");
-    this.rowHandle = make("ew-th-row", "⋮", "Row options");
-    this.addCol = make("ew-th-addcol", "+", "Add column");
-    this.addRow = make("ew-th-addrow", "+", "Add row");
+    this.colHandle = make("ew-th-col", "⋯", t("Column options"));
+    this.rowHandle = make("ew-th-row", "⋮", t("Row options"));
+    this.addCol = make("ew-th-addcol", "+", t("Add column"));
+    this.addRow = make("ew-th-addrow", "+", t("Add row"));
 
     this.colHandle.addEventListener("click", (e) => { e.preventDefault(); this.openColumnMenu(); });
     this.rowHandle.addEventListener("click", (e) => { e.preventDefault(); this.openRowMenu(); });
@@ -199,13 +200,13 @@ export class TableControls {
       anchor: this.colHandle,
       onClose: () => { this.menuOpen = false; this.scheduleHide(); },
       items: [
-        { id: "col-insert-left", title: "Insert left", action: () => this.deps.commit(() => insertColumn(table, index, "left")) },
-        { id: "col-insert-right", title: "Insert right", action: () => this.deps.commit(() => insertColumn(table, index, "right")) },
-        { id: "col-move-left", title: "Move left", disabled: index === 0, action: () => this.deps.commit(() => moveColumn(table, index, -1)) },
-        { id: "col-move-right", title: "Move right", disabled: index >= cols - 1, action: () => this.deps.commit(() => moveColumn(table, index, 1)) },
-        { id: "col-clear", title: "Clear contents", action: () => this.deps.commit(() => clearColumn(table, index)) },
+        { id: "col-insert-left", title: t("Insert left"), action: () => this.deps.commit(() => insertColumn(table, index, "left")) },
+        { id: "col-insert-right", title: t("Insert right"), action: () => this.deps.commit(() => insertColumn(table, index, "right")) },
+        { id: "col-move-left", title: t("Move left"), disabled: index === 0, action: () => this.deps.commit(() => moveColumn(table, index, -1)) },
+        { id: "col-move-right", title: t("Move right"), disabled: index >= cols - 1, action: () => this.deps.commit(() => moveColumn(table, index, 1)) },
+        { id: "col-clear", title: t("Clear contents"), action: () => this.deps.commit(() => clearColumn(table, index)) },
         {
-          id: "col-delete", title: "Delete column", danger: true, disabled: cols <= 1,
+          id: "col-delete", title: t("Delete column"), danger: true, disabled: cols <= 1,
           action: () => this.deps.commit(() => deleteColumn(table, index)),
         },
       ],
@@ -223,22 +224,22 @@ export class TableControls {
       onClose: () => { this.menuOpen = false; this.scheduleHide(); },
       items: [
         {
-          id: "row-insert-above", title: "Insert above", disabled: isHeader,
+          id: "row-insert-above", title: t("Insert above"), disabled: isHeader,
           action: () => this.deps.commit(() => insertRow(table, row, "above")),
         },
-        { id: "row-insert-below", title: "Insert below", action: () => this.deps.commit(() => insertRow(table, row, "below")) },
+        { id: "row-insert-below", title: t("Insert below"), action: () => this.deps.commit(() => insertRow(table, row, "below")) },
         {
-          id: "row-move-up", title: "Move up", disabled: isHeader || isFirstBodyRow(row),
+          id: "row-move-up", title: t("Move up"), disabled: isHeader || isFirstBodyRow(row),
           action: () => this.deps.commit(() => moveRow(row, -1)),
         },
         {
-          id: "row-move-down", title: "Move down", disabled: isHeader || !row.nextElementSibling,
+          id: "row-move-down", title: t("Move down"), disabled: isHeader || !row.nextElementSibling,
           action: () => this.deps.commit(() => moveRow(row, 1)),
         },
-        { id: "row-clear", title: "Clear contents", action: () => this.deps.commit(() => clearRow(row)) },
+        { id: "row-clear", title: t("Clear contents"), action: () => this.deps.commit(() => clearRow(row)) },
         {
           id: "row-delete",
-          title: isHeader ? "Delete row (header is required)" : "Delete row",
+          title: isHeader ? t("Delete row (header is required)") : t("Delete row"),
           danger: true,
           disabled: isHeader,
           action: () => this.deps.commit(() => deleteRow(table, row)),

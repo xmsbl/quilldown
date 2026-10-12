@@ -16,6 +16,7 @@ import { openLinkEditor } from "./link-ui.js";
 import { buildFieldForm } from "./ui.js";
 import type { EditorUIImpl } from "./ui.js";
 import { placeCaretAtStart, placeCaretAtEnd, selectionRect, currentBlock } from "./dom.js";
+import { t } from "./i18n.js";
 
 /** Turn the hovered block into `cmd`. The caret is already inside the block
  *  (the block menu places it before running items), so exec targets it.
@@ -61,11 +62,11 @@ function openImageForm(ctx: EditorContext): void {
 
       buildFieldForm(el, {
         fields: [
-          { name: "src", label: "Image URL", placeholder: "Paste an image URL…" },
-          { name: "alt", label: "Alt text", placeholder: "Describe the image (alt text)" },
+          { name: "src", label: t("Image URL"), placeholder: t("Paste an image URL…") },
+          { name: "alt", label: t("Alt text"), placeholder: t("Describe the image (alt text)") },
         ],
-        submitLabel: "Insert image",
-        actions: [{ label: "Upload…", onPick: () => fileInput.click() }],
+        submitLabel: t("Insert image"),
+        actions: [{ label: t("Upload…"), onPick: () => fileInput.click() }],
         onSubmit(values) {
           close();
           if (!values.src) return;
@@ -233,8 +234,8 @@ export function corePreset(): EdodoPlugin {
         run: (ctx, block) => {
           const md = ctx.markdown.serialize(block.outerHTML);
           void navigator.clipboard?.writeText(md).then(
-            () => ctx.ui.notify("Copied as Markdown"),
-            () => ctx.ui.notify("Copy failed"),
+            () => ctx.ui.notify(t("Copied as Markdown")),
+            () => ctx.ui.notify(t("Copy failed")),
           );
         },
       },

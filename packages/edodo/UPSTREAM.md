@@ -42,6 +42,19 @@
 
 依赖：新增 `prismjs`（+ `@types/prismjs`）。测试断言：4 处上游写死的无 id 标题改为带 id（`parse.test.ts` / `sanitize-node.test.ts` ×2 / `editor.test.ts`）。
 
+### 批次 3：i18n 进源码
+
+上游把界面英文写死在预设 / 插件 / UI 组件里。fork 新增 `src/core/i18n.ts`：
+
+- `t(text)` + `setLocale(locale)`，词条键 = 上游英文原文（**逐字**）
+- 注册表装配（`resolvePlugins`）翻条目；各 UI 组件（table-ui / link-ui / block-handles / slash-menu / editor / preset 表单）在构造时用 `t()`
+- `EditorOptions.locale`（`"en"` 默认 / `"zh"`）；对外导出 `setLocale` / `getLocale` / `t`
+
+译文**逐条对齐**旧的 `packages/wysiwyg/locales/zh.tsv`（构建期替换 vendor 产物那套），所以不造成中文回归。
+`tests/i18n.test.ts` 断言「zh 字典覆盖 corePreset 全部条目文案」，漏一条即失败（不静默留英文）。
+
+→ 旧机制（`locales/*.tsv` + `build.mjs` 的 i18n 插件 + vendor 原件）在接线批次里删除。
+
 ## 同步上游
 
 ```bash

@@ -8,6 +8,8 @@
  * shows a drop-indicator line, and drags a translucent ghost of the block.
  */
 
+import { t } from "./i18n.js";
+
 export interface BlockHandlesDeps {
   /** Called after a reorder or insert changes the document. */
   onChange: () => void;
@@ -41,8 +43,16 @@ export class BlockHandles {
     this.handle.className = "ew-block-handle";
     this.handle.contentEditable = "false";
     this.handle.innerHTML =
-      '<button type="button" class="ew-bh-add" title="Insert block below" aria-label="Insert block below">+</button>' +
-      '<button type="button" class="ew-bh-drag" title="Drag to move, click for menu" aria-label="Drag to move, click for menu">⣿</button>';
+      '<button type="button" class="ew-bh-add" title="' +
+        t("Insert block below") +
+        '" aria-label="' +
+        t("Insert block below") +
+        '">+</button>' +
+      '<button type="button" class="ew-bh-drag" title="' +
+        t("Drag to move, click for menu") +
+        '" aria-label="' +
+        t("Drag to move, click for menu") +
+        '">⣿</button>';
     this.handle.style.display = "none";
 
     this.line = document.createElement("div");

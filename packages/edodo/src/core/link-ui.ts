@@ -12,6 +12,7 @@ import type { EditorContext } from "./types.js";
 import type { EditorUIImpl } from "./ui.js";
 import { buildFieldForm } from "./ui.js";
 import { closestWithin, getRange, selectionRect } from "./dom.js";
+import { t } from "./i18n.js";
 
 export function openLinkEditor(ctx: EditorContext, linkEl?: HTMLElement | null): boolean {
   const ui = ctx.ui as EditorUIImpl;
@@ -33,19 +34,19 @@ export function openLinkEditor(ctx: EditorContext, linkEl?: HTMLElement | null):
     render(el, close) {
       el.classList.add("ew-link-popover");
       buildFieldForm(el, {
-        fields: [{ name: "href", label: "Link URL", placeholder: "Paste or type a link…", value: currentHref }],
-        submitLabel: existing ? "Save" : "Link",
+        fields: [{ name: "href", label: t("Link URL"), placeholder: t("Paste or type a link…"), value: currentHref }],
+        submitLabel: existing ? t("Save") : t("Link"),
         actions: existing
           ? [
               {
-                label: "Open",
+                label: t("Open"),
                 onPick: () => {
                   const href = existing.getAttribute("href");
                   if (href) window.open(href, "_blank", "noopener");
                 },
               },
               {
-                label: "Remove",
+                label: t("Remove"),
                 danger: true,
                 onPick: () => {
                   close();

@@ -18,6 +18,7 @@ import { position, scrollRowIntoList } from "./ui.js";
 import { anchorCaret } from "./input-rules.js";
 import { guard } from "./plugin.js";
 import type { EditorContext, SlashItem } from "./types.js";
+import { t } from "./i18n.js";
 
 const ZWSP = String.fromCharCode(0x200b);
 
@@ -106,7 +107,7 @@ export class SlashMenu {
     this.list.textContent = "";
     let lastGroup: string | undefined;
     this.filtered.forEach((it, i) => {
-      const group = it.group ?? "Blocks";
+      const group = it.group ?? t("Blocks");
       if (group !== lastGroup) {
         const head = document.createElement("div");
         head.className = "ew-slash__group";

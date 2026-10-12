@@ -18,6 +18,8 @@ import type {
   KeyBinding, SlashItem, ToolbarItem, SanitizeOptions,
 } from "./types.js";
 import type { MarkedExtension } from "marked";
+
+import { localizePlugin } from "./i18n.js";
 import type { SerializerExtension } from "./serialize.js";
 
 const DEFAULT_PRIORITY = 100;
@@ -116,6 +118,9 @@ export interface PluginRegistry {
 }
 
 export function resolvePlugins(plugins: EdodoPlugin[], exclude: string[] = []): PluginRegistry {
+  // 内置文案（斜杠菜单 / 工具条 / 块菜单）在装配时过一遍字典 ——
+  // 上游把英文写死在各处，这里不改那些字面量，只在注册表上翻译。
+  plugins = plugins.map(localizePlugin);
   const excluded = new Set(exclude);
   const names = new Map<string, string>();
   const reg: PluginRegistry = {

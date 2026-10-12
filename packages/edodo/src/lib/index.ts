@@ -37,6 +37,8 @@ export type { RenderedDocument } from "../core/parse.js";
 export type { LineAnchor } from "../core/render.js";
 export { htmlToMarkdown, createMarkdownSerializer, tidyMarkdown } from "../core/serialize.js";
 export { sanitizeHtml } from "../core/sanitize.js";
+export { setLocale, getLocale, t } from "../core/i18n.js";
+export type { Locale } from "../core/i18n.js";
 export { applyCommand, isInlineActive } from "../core/commands.js";
 export { definePlugin } from "../core/plugin.js";
 export { corePreset } from "../core/preset.js";

@@ -21,6 +21,7 @@ import type {
   EditorOptions, PayloadArgs, SelectionInfo, ToolbarConfig,
 } from "./types.js";
 import { createMarkdownParser } from "./parse.js";
+import { setLocale, t } from "./i18n.js";
 import { createMarkdownSerializer } from "./serialize.js";
 import { sanitizeHtml } from "./sanitize.js";
 import { runInputRules, type RuleSet } from "./input-rules.js";
@@ -151,8 +152,10 @@ export class EdodoWrite {
 
   constructor(host: HTMLElement, options: EditorOptions = {}) {
     this.host = host;
+    setLocale(options.locale);
     this.opts = {
-      placeholder: options.placeholder ?? "Write something, or type “/” for commands…",
+      // 内置文案走字典（默认英文，`locale: "zh"` 时为中文）
+      placeholder: options.placeholder ?? t("Write something, or type “/” for commands…"),
       slashMenu: options.slashMenu ?? true,
       spellcheck: options.spellcheck ?? true,
       readOnly: options.readOnly ?? false,
@@ -363,7 +366,7 @@ export class EdodoWrite {
           const p = placeholder.closest("p");
           placeholder.remove();
           if (p && visibleText(p).trim() === "" && !p.querySelector("img,input")) p.remove();
-          this.ui.notify("Image upload failed");
+          this.ui.notify(t("Image upload failed"));
         }
       } finally {
         revokePreviewUrl(preview);
