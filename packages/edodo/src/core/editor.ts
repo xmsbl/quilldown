@@ -1,0 +1,918 @@
+/**
+ * EdodoWrite — the framework-free editor controller.
+ *
+ *   const editor = new EdodoWrite(el, { value: "# Hello", onChange: md => … });
+ *
+ * The mental model (the "façade over Markdown"): the contentEditable surface
+ * is the *view*, Markdown is the *state*, and parse/serialize is the
+ * reconciler. Every edit re-serialises the view to Markdown (`getMarkdown()`);
+ * `setMarkdown()` re-hydrates the view. Undo/redo is a stack of Markdown
+ * snapshots — undo literally restores previous state. React is never imported.
+ *
+ * Extensibility: the constructor resolves `[corePreset(), ...options.plugins]`
+ * into per-instance registries (commands, input rules, keymap, slash/toolbar/
+ * block-menu items) and a per-instance markdown pipeline. Built-ins flow
+ * through the exact same registries plugins use. The structural engine
+ * (Enter/Backspace/Tab, history, clipboard, normalizer) is not pluggable.
+ */
+
+import type {
+  AnyCommand, Command, EditorContext, EditorEventName, EditorEvents,
+  EditorOptions, PayloadArgs, SelectionInfo, ToolbarConfig,
+} from "./types.js";
+import { createMarkdownParser } from "./parse.js";
+import { createMarkdownSerializer } from "./serialize.js";
+import { sanitizeHtml } from "./sanitize.js";
+import { runInputRules, type RuleSet } from "./input-rules.js";
+import { handleKeydown } from "./keymap.js";
+import { FixedToolbar, SelectionToolbar } from "./toolbar.js";
+import { SlashMenu } from "./slash-menu.js";
+import { BlockHandles } from "./block-handles.js";
+import { TableControls } from "./table-ui.js";
+import { handleCopyCut, handlePaste, insertMarkdown, type MarkdownPipeline } from "./clipboard.js";
+import {
+  isImageFile, dataUrlUploader, previewUrl, revokePreviewUrl, defaultAlt,
+} from "./image-upload.js";
+import { normalizeDocument, isEffectivelyEmpty, visibleText } from "./normalize.js";
+import { corePreset } from "./preset.js";
+import { resolvePlugins, guard, type PluginRegistry } from "./plugin.js";
+import { EditorUIImpl, keepCaretInView } from "./ui.js";
+import { openLinkEditor } from "./link-ui.js";
+import { toggleInlineTag, isInlineTagActive } from "./commands.js";
+import {
+  blockKindOf, currentBlock, currentListItem, getSelection, getRange, selectionInside,
+  selectionRect, getCaretOffset, setCaretOffset, placeCaretAtStart,
+  placeCaretAtEnd, placeCaretAfter, createElement, ensureNotEmpty,
+  textBeforeCaret, isAtBlockStart, deleteLeadingChars,
+} from "./dom.js";
+
+const EMPTY_DOC = "<p><br></p>";
+const HISTORY_LIMIT = 300;
+
+/** `toolbar: true|false|"floating"|"fixed"|"none"|{mode, items}` → one shape. */
+function normalizeToolbar(opt: EditorOptions["toolbar"]): ToolbarConfig {
+  if (opt === undefined || opt === true) return { mode: "floating" };
+  if (opt === false) return { mode: "none" };
+  if (typeof opt === "string") return { mode: opt };
+  return { mode: opt.mode, items: opt.items };
+}
+const ZWSP = String.fromCharCode(0x200b);
+
+interface Snapshot { md: string; caret: number; }
+
+export class EdodoWrite {
+  readonly host: HTMLElement;
+  readonly content: HTMLElement;
+  private opts: Required<Pick<EditorOptions, "placeholder" | "slashMenu" | "spellcheck" | "readOnly" | "submitOn">>;
+  private toolbarCfg: ToolbarConfig;
+  private registry: PluginRegistry;
+  private pipeline: MarkdownPipeline;
+  private uploader: EditorOptions["uploadImage"];
+  private rules: RuleSet;
+  private ctx: EditorContext;
+  private ui: EditorUIImpl;
+  private toolbar: SelectionToolbar | null = null;
+  private fixedToolbar: FixedToolbar | null = null;
+  private slash: SlashMenu | null = null;
+  private blockHandles: BlockHandles | null = null;
+  private tableControls: TableControls | null = null;
+  private pluginCleanups: Array<() => void> = [];
+  private listeners: { [K in EditorEventName]: Set<EditorEvents[K]> } = {
+    change: new Set(), selection: new Set(), focus: new Set(), blur: new Set(), submit: new Set(),
+  };
+  private changeTimer: ReturnType<typeof setTimeout> | null = null;
+  private applying = false;
+  private destroyed = false;
+  private transactionDepth = 0;
+
+  // Undo/redo: a stack of Markdown snapshots.
+  private history: Snapshot[] = [];
+  private historyIndex = -1;
+  private restoring = false;
+
+  private onInput = (e: Event) => this.handleInput(e as InputEvent);
+  private onBeforeInput = (e: Event) => this.handleBeforeInput(e as InputEvent);
+  private onCompositionEnd = () => { if (!this.opts.readOnly) this.handleInput(); };
+  // isComposing: during IME composition, keys belong to the IME (Firefox and
+  // Safari deliver the REAL key with isComposing=true; Chrome masks it as
+  // "Process"). Dispatching would let Enter/Backspace mutate the document
+  // under an active composition — the same contract input rules follow.
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (!this.opts.readOnly && !e.isComposing) this.handleKey(e);
+  };
+  private onSelectionChange = () => this.handleSelectionChange();
+  private onFocus = () => this.emit("focus");
+  private onBlur = () => { this.slash?.close(); this.toolbar?.hide(); this.emit("blur"); };
+  // Inner scroll (the content is its own scroller in fill layout) moves the
+  // text out from under position-anchored UI; the page never fires this.
+  private onContentScroll = () => { this.slash?.close(); this.toolbar?.hide(); };
+  private onClick = (e: MouseEvent) => this.handleClick(e);
+  private onCopy = (e: ClipboardEvent) => { if (handleCopyCut(e, false, this.pipeline)) { /* copy: no mutation */ } };
+  private onCut = (e: ClipboardEvent) => {
+    if (this.opts.readOnly) { e.preventDefault(); return; }
+    if (handleCopyCut(e, true, this.pipeline)) {
+      // A cut that removed everything leaves block shells (an emptied <h1>,
+      // a list with no items) — collapse them to a fresh paragraph.
+      if (isEffectivelyEmpty(this.content)) {
+        this.content.innerHTML = EMPTY_DOC;
+        placeCaretAtStart(this.content.firstElementChild as HTMLElement);
+      }
+      this.afterMutation();
+    }
+  };
+  private onPaste = (e: ClipboardEvent) => {
+    if (this.opts.readOnly) { e.preventDefault(); return; }
+    // Image files on the clipboard (screenshots, copied images) win over the
+    // text flavors — Notion behavior, and uploading our own copy beats
+    // hotlinking whatever URL rode along in the HTML flavor.
+    const files = Array.from(e.clipboardData?.files ?? []).filter(isImageFile);
+    if (files.length) {
+      e.preventDefault();
+      void this.insertImages(files);
+      return;
+    }
+    if (handlePaste(this.content, e, this.pipeline)) this.afterMutation();
+  };
+  private onDragOver = (e: DragEvent) => {
+    if (this.opts.readOnly || !e.dataTransfer) return;
+    if (Array.from(e.dataTransfer.types).includes("Files")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  };
+  private onDrop = (e: DragEvent) => {
+    if (this.opts.readOnly) return;
+    const files = Array.from(e.dataTransfer?.files ?? []).filter(isImageFile);
+    if (!files.length) return;
+    e.preventDefault();
+    this.placeCaretAtPoint(e.clientX, e.clientY);
+    void this.insertImages(files);
+  };
+
+  constructor(host: HTMLElement, options: EditorOptions = {}) {
+    this.host = host;
+    this.opts = {
+      placeholder: options.placeholder ?? "Write something, or type “/” for commands…",
+      slashMenu: options.slashMenu ?? true,
+      spellcheck: options.spellcheck ?? true,
+      readOnly: options.readOnly ?? false,
+      submitOn: options.submitOn ?? false,
+    };
+    this.toolbarCfg = normalizeToolbar(options.toolbar);
+    this.uploader = options.uploadImage;
+
+    // Resolve plugins (throws on collisions) and build the instance pipeline.
+    this.registry = resolvePlugins([corePreset(), ...(options.plugins ?? [])], options.exclude);
+    const parse = createMarkdownParser(this.registry.markedExtensions, this.registry.sanitize);
+    const serialize = createMarkdownSerializer(this.registry.turndownExtensions);
+    this.pipeline = {
+      parse,
+      serialize,
+      sanitize: (html) => sanitizeHtml(html, this.registry.sanitize),
+    };
+    this.rules = {
+      block: this.registry.blockRules,
+      inline: this.registry.inlineRules,
+    };
+
+    host.classList.add("ew");
+    // toggle, not add — a host element reused across editors (SPA remounts)
+    // must not inherit the previous instance's fill layout.
+    host.classList.toggle("ew--fill", (options.layout ?? "page") === "fill");
+    if (options.className) host.classList.add(...options.className.split(/\s+/).filter(Boolean));
+
+    this.content = document.createElement("div");
+    this.content.className = "ew-content";
+    this.content.setAttribute("contenteditable", this.opts.readOnly ? "false" : "true");
+    this.content.spellcheck = this.opts.spellcheck;
+    this.content.setAttribute("role", "textbox");
+    this.content.setAttribute("aria-multiline", "true");
+    if (options.ariaLabel) this.content.setAttribute("aria-label", options.ariaLabel);
+    this.content.dataset.placeholder = this.opts.placeholder;
+    host.appendChild(this.content);
+
+    this.ui = new EditorUIImpl(this.content);
+    this.ctx = this.buildContext();
+
+    this.setMarkdown(options.value ?? "", { silent: true });
+    this.seedHistory();
+
+    if (options.onChange) this.on("change", options.onChange);
+    if (options.onSubmit) this.on("submit", () => options.onSubmit!(this));
+
+    // Chrome (all editing UI) is created and listeners are attached
+    // unconditionally; behavior is gated on the LIVE readOnly flag so
+    // `setReadOnly()` can toggle a fully working editor in both directions.
+    this.buildToolbar();
+    if (this.opts.slashMenu) {
+      this.slash = new SlashMenu(this.content, this.registry.slashItems, this.ctx);
+    }
+    this.blockHandles = new BlockHandles(this.content, this.host, {
+      onChange: () => this.afterMutation(),
+      onInsertAfter: (block) => this.insertParagraphAfter(block),
+      onMenu: (block, anchor) => this.openBlockMenu(block, anchor),
+    });
+    this.blockHandles.setEnabled(!this.opts.readOnly);
+    this.tableControls = new TableControls(this.content, this.host, {
+      commit: (fn) => { this.transact(fn); this.focus(); },
+      ui: this.ui,
+    });
+    this.tableControls.setEnabled(!this.opts.readOnly);
+
+    this.content.addEventListener("beforeinput", this.onBeforeInput);
+    this.content.addEventListener("scroll", this.onContentScroll, { passive: true });
+    this.content.addEventListener("input", this.onInput);
+    this.content.addEventListener("compositionend", this.onCompositionEnd);
+    this.content.addEventListener("keydown", this.onKeyDown);
+    this.content.addEventListener("focus", this.onFocus);
+    this.content.addEventListener("blur", this.onBlur);
+    this.content.addEventListener("copy", this.onCopy);
+    this.content.addEventListener("cut", this.onCut);
+    this.content.addEventListener("paste", this.onPaste);
+    this.content.addEventListener("dragover", this.onDragOver);
+    this.content.addEventListener("drop", this.onDrop);
+    document.addEventListener("selectionchange", this.onSelectionChange);
+    this.content.addEventListener("click", this.onClick);
+
+    this.runPluginSetups();
+
+    if (options.autofocus && !this.opts.readOnly) this.focus();
+  }
+
+  // ── Public API ───────────────────────────────────────────────────────────
+
+  getMarkdown(): string {
+    return this.pipeline.serialize(this.content.innerHTML);
+  }
+
+  setMarkdown(md: string, opts: { silent?: boolean } = {}): void {
+    const html = this.pipeline.parse(md ?? "");
+    this.content.innerHTML = html.trim() || EMPTY_DOC;
+    normalizeDocument(this.content);
+    this.updatePlaceholder();
+    if (!opts.silent) { this.recordHistory(); this.scheduleChange(); }
+  }
+
+  getHTML(): string {
+    return this.content.innerHTML;
+  }
+
+  isEmpty(): boolean {
+    const text = visibleText(this.content).trim();
+    return text === "" && !this.content.querySelector("img,hr,input,pre");
+  }
+
+  focus(): void { this.content.focus(); }
+  blur(): void { this.content.blur(); }
+
+  /** Execute a registered command. Returns false when unregistered/refused. */
+  exec<C extends AnyCommand>(cmd: C, ...args: PayloadArgs<C>): boolean {
+    if (this.opts.readOnly) return false;
+    const entry = this.registry.commands.get(cmd);
+    if (!entry) {
+      console.warn(`[edodo-write] unknown command "${cmd}"`);
+      return false;
+    }
+    this.content.focus();
+    const result = this.transact(() =>
+      guard(entry.plugin, `command "${cmd}"`, () => entry.spec.run(this.ctx, args[0])),
+    );
+    // A void return means "done" — only an explicit `false` signals refusal.
+    // (Were a void return treated as unhandled, a keybinding would fall
+    // through to the browser default and apply the format twice.)
+    return result !== false;
+  }
+
+  /**
+   * Insert text at the caret as ONE undo step + ONE change event. Caret-safe
+   * and non-destructive: with the caret inside the editor the text lands at the
+   * caret; with the caret elsewhere (a dictation button, a placeholder sidebar)
+   * the editor is focused and the text is appended as a NEW paragraph — never
+   * fused onto the prior line. The text is treated as Markdown. Returns false
+   * when read-only or given empty text.
+   */
+  insertText(text: string): boolean {
+    if (this.opts.readOnly || this.destroyed || !text) return false;
+    // Capture the caret BEFORE focusing — `.focus()` collapses the selection to
+    // the editor start in some engines (and in jsdom), which would drop the
+    // insert at the wrong place. `inside` decides caret-insert vs. append.
+    const inside = selectionInside(this.content);
+    const saved = inside ? getRange()?.cloneRange() ?? null : null;
+    return this.transact(() => {
+      this.content.focus();
+      if (inside && saved) {
+        const sel = getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(saved);
+      } else {
+        // Caret outside the editor → append a FRESH paragraph at the end and
+        // drop the text there; never fuse onto the prior line.
+        const p = createElement("p", {}, "<br>");
+        this.content.appendChild(p);
+        placeCaretAtStart(p);
+      }
+      insertMarkdown(this.content, text, this.pipeline);
+      return true;
+    });
+  }
+
+  /**
+   * Insert image files (from paste, drop, or a file picker) at the caret.
+   * Each file shows a pending placeholder immediately, then the configured
+   * `uploadImage` (or the data-URL fallback) resolves its final `src`.
+   * Deleting a placeholder while its upload is in flight cancels that image.
+   * Resolves when every upload has settled. Non-image files are ignored.
+   */
+  async insertImages(files: Iterable<File>, opts: { alt?: string } = {}): Promise<void> {
+    if (this.opts.readOnly || this.destroyed) return;
+    const images = Array.from(files).filter(isImageFile);
+    if (!images.length) return;
+
+    let uploader = this.uploader;
+    if (!uploader) {
+      uploader = (file) => dataUrlUploader(file);
+      if (!this.warnedFallbackUpload) {
+        this.warnedFallbackUpload = true;
+        console.info(
+          "[edodo-write] no uploadImage configured — images are embedded as data: URLs " +
+          "in the Markdown. Fine for small documents; see docs/IMAGE_HOSTING.md for real hosting.",
+        );
+      }
+    }
+
+    // Place every placeholder first (so multiple files land in order), then
+    // let the uploads race.
+    const jobs = images.map((file) => ({ file, placeholder: this.insertPendingImage(file, opts.alt) }));
+    this.afterMutation();
+
+    await Promise.all(jobs.map(async ({ file, placeholder }) => {
+      const preview = placeholder.getAttribute("src");
+      try {
+        const result = await uploader!(file, this);
+        const resolved = typeof result === "string" ? { src: result } : result;
+        if (!resolved?.src) throw new Error("uploadImage resolved without a src");
+        // Placeholder gone = the user deleted it (or undo re-hydrated the
+        // doc) while uploading — treat as cancelled.
+        if (this.destroyed || !placeholder.isConnected) return;
+        placeholder.setAttribute("src", resolved.src);
+        if (resolved.alt) placeholder.setAttribute("alt", resolved.alt);
+        placeholder.removeAttribute("data-uploading");
+      } catch (err) {
+        console.error("[edodo-write] image upload failed:", err);
+        if (!this.destroyed && placeholder.isConnected) {
+          const p = placeholder.closest("p");
+          placeholder.remove();
+          if (p && visibleText(p).trim() === "" && !p.querySelector("img,input")) p.remove();
+          this.ui.notify("Image upload failed");
+        }
+      } finally {
+        revokePreviewUrl(preview);
+        if (!this.destroyed) this.afterMutation();
+      }
+    }));
+  }
+
+  private warnedFallbackUpload = false;
+
+  /** A pending image: rendered immediately, excluded from the Markdown until
+   *  its upload resolves (see the `data-uploading` turndown rule). */
+  private insertPendingImage(file: File, altOverride?: string): HTMLElement {
+    const img = createElement("img", {
+      src: previewUrl(file),
+      alt: altOverride ?? defaultAlt(file),
+      "data-uploading": "",
+    });
+    const p = document.createElement("p");
+    p.appendChild(img);
+    const after = createElement("p", {}, "<br>");
+    const block = currentBlock(this.content) || (this.content.lastElementChild as HTMLElement | null);
+    if (block) {
+      block.after(p);
+      p.after(after);
+      if (
+        block.tagName === "P" &&
+        visibleText(block).trim() === "" &&
+        !block.querySelector("img,input,hr")
+      ) {
+        block.remove();
+      }
+    } else {
+      this.content.append(p, after);
+    }
+    placeCaretAtStart(after);
+    return img;
+  }
+
+  private placeCaretAtPoint(x: number, y: number): void {
+    type CaretDoc = Document & {
+      caretRangeFromPoint?(x: number, y: number): Range | null;
+      caretPositionFromPoint?(x: number, y: number): { offsetNode: Node; offset: number } | null;
+    };
+    const doc = document as CaretDoc;
+    let range: Range | null = null;
+    if (typeof doc.caretRangeFromPoint === "function") {
+      range = doc.caretRangeFromPoint(x, y);
+    } else if (typeof doc.caretPositionFromPoint === "function") {
+      const pos = doc.caretPositionFromPoint(x, y);
+      if (pos) {
+        range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse(true);
+      }
+    }
+    if (range && (this.content.contains(range.startContainer) || range.startContainer === this.content)) {
+      const sel = getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  }
+
+  /** Batch DOM mutations into ONE undo step + ONE change event. Re-entrant. */
+  transact<T>(fn: () => T): T {
+    this.transactionDepth += 1;
+    try {
+      return fn();
+    } finally {
+      this.transactionDepth -= 1;
+      if (this.transactionDepth === 0) this.afterMutation();
+    }
+  }
+
+  undo(): void {
+    this.flushPendingHistory();
+    if (this.historyIndex <= 0) return;
+    this.historyIndex -= 1;
+    this.restore(this.history[this.historyIndex]);
+  }
+
+  redo(): void {
+    if (this.historyIndex >= this.history.length - 1) return;
+    this.historyIndex += 1;
+    this.restore(this.history[this.historyIndex]);
+  }
+
+  setReadOnly(readOnly: boolean): void {
+    this.opts.readOnly = readOnly;
+    this.content.setAttribute("contenteditable", readOnly ? "false" : "true");
+    this.blockHandles?.setEnabled(!readOnly);
+    this.tableControls?.setEnabled(!readOnly);
+    this.fixedToolbar?.setEnabled(!readOnly);
+    if (readOnly) {
+      this.toolbar?.hide();
+      this.slash?.close();
+      this.ui.closeAll();
+    }
+  }
+
+  /** Build the configured toolbar(s); destroys whatever was there before. */
+  private buildToolbar(): void {
+    this.toolbar?.destroy();
+    this.toolbar = null;
+    this.fixedToolbar?.destroy();
+    this.fixedToolbar = null;
+    const cfg = this.toolbarCfg;
+    if (cfg.mode === "none") return;
+    // Explicit ids pick items in the GIVEN order; unknown ids are skipped
+    // (a plugin may be excluded per instance — a hard throw would couple the
+    // items list to the plugin set).
+    const items = cfg.items
+      ? cfg.items
+          .map((id) => this.registry.toolbarItems.find((it) => it.id === id))
+          .filter((it): it is NonNullable<typeof it> => !!it)
+      : this.registry.toolbarItems;
+    if (cfg.mode === "floating") {
+      this.toolbar = new SelectionToolbar(items, this.ctx);
+    } else {
+      this.fixedToolbar = new FixedToolbar(items, this.ctx, this.host, this.content);
+      this.fixedToolbar.setEnabled(!this.opts.readOnly);
+      this.fixedToolbar.update(this.buildSelectionInfo());
+    }
+  }
+
+  /** Switch the toolbar mode / button set at runtime. */
+  setToolbar(toolbar: EditorOptions["toolbar"]): void {
+    if (this.destroyed) return;
+    this.toolbarCfg = normalizeToolbar(toolbar);
+    this.buildToolbar();
+    // Sync the new bar with the LIVE selection — a floating bar swapped in
+    // over an active selection must appear now, not on the next caret move.
+    this.handleSelectionChange();
+  }
+
+  /** Switch between the document ("page") and embedded ("fill") layouts. */
+  setLayout(layout: "page" | "fill"): void {
+    if (this.destroyed) return;
+    this.host.classList.toggle("ew--fill", layout === "fill");
+  }
+
+  on<K extends EditorEventName>(event: K, handler: EditorEvents[K]): () => void {
+    this.listeners[event].add(handler);
+    return () => this.off(event, handler);
+  }
+
+  off<K extends EditorEventName>(event: K, handler: EditorEvents[K]): void {
+    this.listeners[event].delete(handler);
+  }
+
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    for (const cleanup of this.pluginCleanups) {
+      try { cleanup(); } catch (err) { console.error("[edodo-write] plugin cleanup failed:", err); }
+    }
+    for (const plugin of this.registry.plugins) {
+      if (plugin.on?.destroy) guard(plugin.name, "on.destroy", () => plugin.on!.destroy!(this.ctx));
+    }
+    this.content.removeEventListener("beforeinput", this.onBeforeInput);
+    this.content.removeEventListener("scroll", this.onContentScroll);
+    this.content.removeEventListener("input", this.onInput);
+    this.content.removeEventListener("compositionend", this.onCompositionEnd);
+    this.content.removeEventListener("keydown", this.onKeyDown);
+    this.content.removeEventListener("focus", this.onFocus);
+    this.content.removeEventListener("blur", this.onBlur);
+    this.content.removeEventListener("copy", this.onCopy);
+    this.content.removeEventListener("cut", this.onCut);
+    this.content.removeEventListener("paste", this.onPaste);
+    this.content.removeEventListener("dragover", this.onDragOver);
+    this.content.removeEventListener("drop", this.onDrop);
+    this.content.removeEventListener("click", this.onClick);
+    document.removeEventListener("selectionchange", this.onSelectionChange);
+    this.toolbar?.destroy();
+    this.fixedToolbar?.destroy();
+    this.slash?.destroy();
+    this.blockHandles?.destroy();
+    this.tableControls?.destroy();
+    this.ui.destroy();
+    if (this.changeTimer) clearTimeout(this.changeTimer);
+    this.host.classList.remove("ew--fill");
+    this.content.remove();
+    (["change", "selection", "focus", "blur", "submit"] as EditorEventName[]).forEach((e) => this.listeners[e].clear());
+  }
+
+  // ── Context & plugin wiring ─────────────────────────────────────────────────
+
+  private buildContext(): EditorContext {
+    const root = this.content;
+    return {
+      editor: this,
+      root,
+      exec: (cmd, ...args) => this.exec(cmd, ...args),
+      transact: (fn) => this.transact(fn),
+      markdown: {
+        parse: (md) => this.pipeline.parse(md),
+        serialize: (html) => this.pipeline.serialize(html),
+        insert: (md) => this.transact(() => insertMarkdown(root, md, this.pipeline)),
+      },
+      dom: {
+        currentBlock: () => currentBlock(root),
+        currentListItem: () => currentListItem(root),
+        blockKindOf: (el) => blockKindOf(el),
+        textBeforeCaret: (block) => textBeforeCaret(block).replace(/ /g, " ").split(ZWSP).join(""),
+        isAtBlockStart: (block) => isAtBlockStart(block),
+        deleteLeadingChars: (block, n) => deleteLeadingChars(block, n),
+        ensureNotEmpty: (el) => ensureNotEmpty(el),
+        placeCaretAtStart: (el) => placeCaretAtStart(el),
+        placeCaretAtEnd: (el) => placeCaretAtEnd(el),
+        placeCaretAfter: (node) => placeCaretAfter(node),
+        toggleInlineTag: (tag) => toggleInlineTag(root, tag),
+        isInlineTagActive: (tag) => isInlineTagActive(root, tag),
+        selectionRect: () => selectionRect(),
+      },
+      ui: this.ui,
+    };
+  }
+
+  private runPluginSetups(): void {
+    for (const plugin of this.registry.plugins) {
+      if (plugin.setup) {
+        const cleanup = guard(plugin.name, "setup", () => plugin.setup!(this.ctx));
+        if (typeof cleanup === "function") this.pluginCleanups.push(cleanup);
+      }
+      const hooks = plugin.on;
+      if (!hooks) continue;
+      if (hooks.change) this.on("change", (md) => guard(plugin.name, "on.change", () => hooks.change!(md, this.ctx)));
+      if (hooks.selection) this.on("selection", (info) => guard(plugin.name, "on.selection", () => hooks.selection!(info, this.ctx)));
+      if (hooks.focus) this.on("focus", () => guard(plugin.name, "on.focus", () => hooks.focus!(this.ctx)));
+      if (hooks.blur) this.on("blur", () => guard(plugin.name, "on.blur", () => hooks.blur!(this.ctx)));
+    }
+  }
+
+  // ── Internals ──────────────────────────────────────────────────────────────
+
+  private handleInput(e?: InputEvent): void {
+    if (this.applying || this.opts.readOnly) return;
+    // Never transform mid-IME-composition — input rules firing on a partial
+    // composition string corrupt CJK/dead-key input. compositionend re-runs us.
+    if (e?.isComposing) return;
+    this.applying = true;
+    try {
+      // Repair whatever the native edit left behind (stray root text nodes,
+      // emptied shells, styled spans) BEFORE matching input rules against it.
+      this.normalize();
+      runInputRules(this.content, this.rules, this.ctx);
+    } finally {
+      this.applying = false;
+    }
+    this.updatePlaceholder();
+    if (this.opts.slashMenu) this.slash?.sync();
+    // After the DOM has settled, not before: an Enter that created a block
+    // has only just changed the document's height, and a caret measured
+    // before that lands in the wrong place.
+    this.keepCaretVisible();
+    this.scheduleChange();
+  }
+
+  /**
+   * Keep what you are writing comfortably on screen. `.ew-content` is its
+   * own scroller in fill layout, so this is the box to move; in page layout
+   * the content is not scrollable and the browser (plus the document-length
+   * bottom padding) already does the right thing, so this no-ops.
+   */
+  private keepCaretVisible(): void {
+    if (this.content.scrollHeight <= this.content.clientHeight) return;
+    keepCaretInView(this.content);
+  }
+
+  /**
+   * Typing or deleting over a select-all must reset the document to a plain
+   * paragraph (Notion behavior) — natively, Chrome keeps the first block's
+   * emptied shell and the replacement text lands inside a stale heading.
+   */
+  private handleBeforeInput(e: InputEvent): void {
+    if (this.opts.readOnly || e.isComposing) return;
+    const type = e.inputType;
+    const replacing = type === "insertText" || type === "insertParagraph" ||
+      type === "deleteContentBackward" || type === "deleteContentForward";
+    if (!replacing || !this.isFullDocSelection()) return;
+    e.preventDefault();
+    this.content.innerHTML = EMPTY_DOC;
+    const p = this.content.firstElementChild as HTMLElement;
+    if (type === "insertText" && e.data) {
+      p.textContent = e.data;
+      const sel = getSelection();
+      if (sel && p.firstChild) {
+        const r = document.createRange();
+        r.setStart(p.firstChild, (p.firstChild as Text).length);
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
+    } else {
+      placeCaretAtStart(p);
+    }
+    this.afterMutation();
+  }
+
+  private isFullDocSelection(): boolean {
+    const sel = getSelection();
+    if (!sel || sel.isCollapsed || !selectionInside(this.content)) return false;
+    const selected = sel.toString().replace(/\s+/g, "");
+    const total = visibleText(this.content).replace(/\s+/g, "");
+    return total.length > 0 && selected.length >= total.length;
+  }
+
+  private handleKey(e: KeyboardEvent): void {
+    if (this.slash?.onKeyDown(e)) return;
+    handleKeydown(this.content, e, {
+      notify: () => this.afterMutation(),
+      undo: () => this.undo(),
+      redo: () => this.redo(),
+      submit: this.opts.submitOn
+        ? { on: this.opts.submitOn, fire: () => this.fireSubmit() }
+        : undefined,
+    }, this.registry.keymap, this.ctx);
+  }
+
+  /**
+   * The composer's submit key was pressed (EditorOptions.submitOn). Flush the
+   * debounced change first so a host reading its own state — not
+   * `getMarkdown()` — sees the final keystroke rather than the one before it.
+   */
+  private fireSubmit(): void {
+    if (this.changeTimer) {
+      clearTimeout(this.changeTimer);
+      this.changeTimer = null;
+      this.recordHistory();
+      const md = this.getMarkdown();
+      this.listeners.change.forEach((fn) => fn(md));
+    }
+    this.listeners.submit.forEach((fn) => fn());
+  }
+
+  private handleClick(e: MouseEvent): void {
+    const target = e.target as HTMLElement;
+    if (target && target.tagName === "INPUT" && (target as HTMLInputElement).type === "checkbox") {
+      if (this.opts.readOnly) { e.preventDefault(); return; }
+      const box = target as HTMLInputElement;
+      queueMicrotask(() => {
+        if (box.checked) box.setAttribute("checked", "");
+        else box.removeAttribute("checked");
+        box.closest("li")?.setAttribute("data-task", box.checked ? "done" : "todo");
+        this.afterMutation();
+      });
+      return;
+    }
+    // Clicking a link opens the edit popover instead of navigating (Notion/
+    // Medium behavior). Read-only editors keep native navigation.
+    const link = target?.closest?.("a");
+    if (link && this.content.contains(link) && !this.opts.readOnly) {
+      e.preventDefault();
+      openLinkEditor(this.ctx, link as HTMLElement);
+      return;
+    }
+    // Clicking the empty space below the last block appends a paragraph
+    // (Notion/Medium behavior) — the content's bottom padding is clickable.
+    if (target === this.content && !this.opts.readOnly) {
+      const last = this.content.lastElementChild as HTMLElement | null;
+      if (last && e.clientY > last.getBoundingClientRect().bottom) {
+        if (last.tagName === "P" && visibleText(last).trim() === "") {
+          placeCaretAtStart(last);
+          return;
+        }
+        const p = createElement("p", {}, "<br>");
+        this.content.appendChild(p);
+        placeCaretAtStart(p);
+        this.afterMutation();
+      }
+    }
+  }
+
+  private openBlockMenu(block: HTMLElement, anchor: HTMLElement): void {
+    if (this.opts.readOnly) return;
+    // Menu items act on the CARET block — put the caret where the user is
+    // pointing before anything runs (the hovered block is not necessarily the
+    // caret block). If the caret is ALREADY inside this block, keep it: table
+    // row/column operations depend on the exact cell.
+    const range = getSelection()?.rangeCount ? getSelection()!.getRangeAt(0) : null;
+    const caretInside = !!range && block.contains(range.startContainer);
+    if (!caretInside) {
+      // For tables the placeable position is a CELL, not (table, 0).
+      const target = block.tagName === "TABLE"
+        ? ((block.querySelector("th, td") as HTMLElement | null) ?? block)
+        : block;
+      placeCaretAtStart(target);
+    }
+    const items = this.registry.blockMenuItems
+      .filter((item) => !item.when || guard("block-menu", `when "${item.id}"`, () => item.when!(this.ctx, block)))
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        group: item.group ?? "Actions",
+        danger: item.danger,
+        action: () => {
+          // Same rule as at open time: only re-anchor the caret when it is
+          // not already inside the block — table ops depend on the exact cell.
+          const r = getSelection()?.rangeCount ? getSelection()!.getRangeAt(0) : null;
+          if (!r || !block.contains(r.startContainer)) placeCaretAtStart(block);
+          this.transact(() =>
+            guard("block-menu", `item "${item.id}"`, () => item.run(this.ctx, block)),
+          );
+          this.focus();
+        },
+      }));
+    this.ui.menu({ anchor, items });
+  }
+
+  private insertParagraphAfter(block: HTMLElement): void {
+    if (this.opts.readOnly) return;
+    const p = createElement("p", {}, "<br>");
+    block.after(p);
+    placeCaretAtStart(p);
+    this.content.focus();
+    this.afterMutation();
+  }
+
+  private afterMutation(): void {
+    if (this.transactionDepth > 0) return; // the outermost transact commits
+    this.normalize();
+    this.updatePlaceholder();
+    this.recordHistory();
+    this.scheduleChange();
+    this.handleSelectionChange();
+    // The other half of the caret-in-view hook. Typing arrives at
+    // handleInput; everything STRUCTURAL — Enter, Backspace, paste, a
+    // command — arrives here, and Enter at the end of a document is the
+    // exact case that prompted this. Missing this funnel is how the first
+    // attempt still left the caret on the bottom edge after Enter.
+    this.keepCaretVisible();
+  }
+
+  /** Re-establish the document schema; re-place the caret if it was reset. */
+  private normalize(): void {
+    const wasReset = normalizeDocument(this.content);
+    if (wasReset) {
+      const p = this.content.firstElementChild as HTMLElement | null;
+      if (p && (document.activeElement === this.content || selectionInside(this.content))) {
+        placeCaretAtStart(p);
+      }
+    }
+  }
+
+  private updatePlaceholder(): void {
+    this.content.classList.toggle("ew-content--empty", this.isEmpty());
+  }
+
+  private scheduleChange(): void {
+    if (this.changeTimer) clearTimeout(this.changeTimer);
+    this.changeTimer = setTimeout(() => {
+      this.changeTimer = null;
+      this.recordHistory();
+      const md = this.getMarkdown();
+      this.listeners.change.forEach((fn) => fn(md));
+    }, 120);
+  }
+
+  // ── History (undo/redo) ────────────────────────────────────────────────────
+
+  private seedHistory(): void {
+    this.history = [{ md: this.getMarkdown(), caret: 0 }];
+    this.historyIndex = 0;
+  }
+
+  private recordHistory(): void {
+    if (this.restoring) return;
+    const md = this.getMarkdown();
+    if (this.history[this.historyIndex]?.md === md) return;
+    // truncate any redo tail, then push
+    this.history.length = this.historyIndex + 1;
+    this.history.push({ md, caret: getCaretOffset(this.content) ?? 0 });
+    if (this.history.length > HISTORY_LIMIT) this.history.shift();
+    this.historyIndex = this.history.length - 1;
+  }
+
+  private flushPendingHistory(): void {
+    if (this.changeTimer) { clearTimeout(this.changeTimer); this.changeTimer = null; }
+    this.recordHistory();
+  }
+
+  private restore(snap: Snapshot): void {
+    this.restoring = true;
+    this.setMarkdown(snap.md, { silent: true });
+    try { setCaretOffset(this.content, snap.caret); } catch { /* caret best-effort */ }
+    this.restoring = false;
+    const md = snap.md;
+    this.listeners.change.forEach((fn) => fn(md));
+    this.handleSelectionChange();
+  }
+
+  // ── Selection ──────────────────────────────────────────────────────────────
+
+  private handleSelectionChange(): void {
+    if (this.destroyed) return;
+    const info = this.buildSelectionInfo();
+    if (!this.opts.readOnly) {
+      this.toolbar?.update(info);
+      this.fixedToolbar?.update(info);
+    }
+    this.updateBlockPlaceholder(info);
+    this.listeners.selection.forEach((fn) => fn(info));
+  }
+
+  /** Notion-style hint on the FOCUSED empty paragraph (the document-level
+   *  placeholder only covers the empty-document case). */
+  private updateBlockPlaceholder(info: SelectionInfo | null): void {
+    const prev = this.content.querySelector(".ew-block-empty");
+    let target: HTMLElement | null = null;
+    if (info && info.collapsed && !this.opts.readOnly && !this.isEmpty()) {
+      const block = currentBlock(this.content);
+      if (block && block.tagName === "P" && visibleText(block).trim() === "") {
+        target = block;
+      }
+    }
+    if (prev && prev !== target) prev.classList.remove("ew-block-empty");
+    if (target) target.classList.add("ew-block-empty");
+  }
+
+  private buildSelectionInfo(): SelectionInfo | null {
+    if (!selectionInside(this.content)) return null;
+    const sel = getSelection();
+    if (!sel) return null;
+    const collapsed = sel.isCollapsed;
+    const selected = sel.toString().trim();
+    const marks: Record<string, boolean> = {};
+    for (const [name, entry] of this.registry.commands) {
+      if (!entry.spec.isActive) continue;
+      marks[name] = !!guard(entry.plugin, `isActive "${name}"`, () => entry.spec.isActive!(this.ctx));
+    }
+    return {
+      empty: collapsed || selected === "",
+      collapsed,
+      bold: !!marks.bold,
+      italic: !!marks.italic,
+      strike: !!marks.strike,
+      code: !!marks.code,
+      link: !!marks.link,
+      marks,
+      block: blockKindOf(currentBlock(this.content)),
+      rect: collapsed ? null : selectionRect(),
+    };
+  }
+
+  private emit(event: "focus" | "blur"): void {
+    this.listeners[event].forEach((fn) => (fn as () => void)());
+  }
+}
+
+export type { Command, EditorOptions };

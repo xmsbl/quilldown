@@ -6,3 +6,5 @@ LICENSE
 # vendored 第三方原件（edodo）与汉化清单：保持原件字节，别让 prettier 改写
 packages/*/vendor/
 packages/*/locales/
+# edodo fork：保持上游风格，重跑上游 diff 时更干净
+packages/edodo/

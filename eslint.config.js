@@ -6,7 +6,14 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   {
     // vendored 的第三方原件（edodo）与我们的 locale 清单不参与 lint
-    ignores: ["**/dist/**", "**/node_modules/**", "**/coverage/**", "packages/*/vendor/**"],
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/coverage/**",
+      "packages/*/vendor/**",
+      // edodo 是 fork 的第三方源码：保持上游风格，不参与我们的 lint/format
+      "packages/edodo/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

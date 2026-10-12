@@ -1,0 +1,59 @@
+{
+  "name": "@xmsbl/quilldown-edodo",
+  "version": "0.10.0",
+  "private": true,
+  "type": "module",
+  "description": "Fork of edodo-write (MIT) kept as an internal package. Upstream: https://github.com/vivmagarwal/edodo-write @ a7960a0 (v0.10.0). See UPSTREAM.md.",
+  "license": "MIT",
+  "author": "vivmagarwal",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist-lib/index.js",
+  "module": "./dist-lib/index.js",
+  "types": "./dist-lib/lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist-lib/lib/index.d.ts",
+      "import": "./dist-lib/index.js"
+    },
+    "./plugins": {
+      "types": "./dist-lib/plugins/index.d.ts",
+      "import": "./dist-lib/plugins.js"
+    },
+    "./parse": {
+      "types": "./dist-lib/lib/parse-api.d.ts",
+      "import": "./dist-lib/parse.js"
+    },
+    "./styles.css": "./dist-lib/edodo-write.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist-lib"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "typecheck": "tsc -p tsconfig.app.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@joplin/turndown-plugin-gfm": "^1.0.61",
+    "dom-serializer": "^2.0.0",
+    "domhandler": "^5.0.3",
+    "htmlparser2": "^9.1.0",
+    "marked": "^12.0.2",
+    "turndown": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/turndown": "^5.0.5",
+    "edododraw": "^0.1.4",
+    "jsdom": "^30.1.2",
+    "katex": "^0.17.0",
+    "typescript": "^5",
+    "vite": "^7",
+    "vitest": "^5"
+  }
+}

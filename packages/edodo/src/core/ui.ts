@@ -1,0 +1,407 @@
+/**
+ * Editor-owned floating-UI primitives — the ONLY sanctioned way to render
+ * plugin UI. Every floating surface needs the same safety properties, so they
+ * are implemented once here instead of rediscovered per feature:
+ *
+ *   • body portal (never clipped by the editor's overflow), inside an
+ *     `.ew.ew-layer` element so the theme variables apply;
+ *   • viewport clamping;
+ *   • `mousedown` prevention on the frame — clicking a button must not
+ *     collapse the selection it is about to act on — but NOT on form fields,
+ *     which need focus to be typeable;
+ *   • the editor's selection Range is saved on open and restored before any
+ *     action / on close, so a popover with an `<input>` can steal focus
+ *     without destroying the selection it operates on;
+ *   • dismissal on Escape / outside pointerdown / window scroll;
+ *   • forced teardown on `editor.destroy()` and `setReadOnly(true)`;
+ *   • one popover per editor at a time (opening a second closes the first).
+ */
+
+import type { EditorUI, MenuOptions, PopoverOptions, PopoverHandle } from "./types.js";
+import { getRange, getSelection } from "./dom.js";
+
+interface ActivePopover {
+  el: HTMLElement;
+  cleanup: () => void;
+}
+
+export class EditorUIImpl implements EditorUI {
+  private layer: HTMLElement;
+  private active: ActivePopover | null = null;
+
+  constructor(private editorRoot: HTMLElement) {
+    this.layer = document.createElement("div");
+    this.layer.className = "ew ew-layer";
+    document.body.appendChild(this.layer);
+  }
+
+  // ── Selection preservation ────────────────────────────────────────────────
+
+  private savedRange: Range | null = null;
+
+  private saveSelection(): void {
+    const range = getRange();
+    this.savedRange =
+      range && (this.editorRoot.contains(range.startContainer) || range.startContainer === this.editorRoot)
+        ? range.cloneRange()
+        : null;
+  }
+
+  /** Restore the selection saved when the popover opened. Safe to call twice. */
+  restoreSelection(): void {
+    if (!this.savedRange) return;
+    const sel = getSelection();
+    if (!sel) return;
+    sel.removeAllRanges();
+    sel.addRange(this.savedRange.cloneRange());
+  }
+
+  // ── Popover ───────────────────────────────────────────────────────────────
+
+  popover(opts: PopoverOptions): PopoverHandle {
+    this.closeAll();
+    this.saveSelection();
+
+    const el = document.createElement("div");
+    el.className = "ew-popover";
+    el.setAttribute("contenteditable", "false");
+    this.layer.appendChild(el);
+
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      renderCleanup?.();
+      el.remove();
+      document.removeEventListener("pointerdown", onOutside, true);
+      document.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("scroll", onScroll, true);
+      if (this.active?.el === el) this.active = null;
+      opts.onClose?.();
+    };
+
+    // Keep the editor selection alive: block focus-stealing mousedown on the
+    // frame, but let form fields take focus.
+    el.addEventListener("mousedown", (e) => {
+      const t = e.target as HTMLElement;
+      if (!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) e.preventDefault();
+    });
+
+    const onOutside = (e: PointerEvent) => {
+      if (!el.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
+    };
+    const onScroll = (e: Event) => {
+      if (!el.contains(e.target as Node)) close();
+    };
+    // Deferred so the opening click doesn't immediately dismiss.
+    setTimeout(() => {
+      if (closed) return;
+      document.addEventListener("pointerdown", onOutside, true);
+      document.addEventListener("keydown", onKey, true);
+      window.addEventListener("scroll", onScroll, true);
+    }, 0);
+
+    // Position BEFORE rendering: anything layout-sensitive inside render
+    // (focus, scroll adjustments) must see the popover near its anchor, not
+    // parked at the document origin — on a tall page that parking spot is
+    // exactly what turns a stray scroll into a jump to the top.
+    position(el, opts.anchor, opts.placement ?? "below");
+    const renderCleanup = opts.render(el, close) ?? undefined;
+    // Re-position once content exists (dimensions changed → clamping).
+    position(el, opts.anchor, opts.placement ?? "below");
+
+    this.active = { el, cleanup: close };
+    return { close, el };
+  }
+
+  // ── Menu (keyboard-navigable list) ────────────────────────────────────────
+
+  menu(opts: MenuOptions): PopoverHandle {
+    return this.popover({
+      anchor: opts.anchor,
+      onClose: opts.onClose,
+      render: (container, close) => {
+        container.classList.add("ew-menu");
+        container.setAttribute("role", "menu");
+        const enabled = opts.items.filter((it) => !it.disabled);
+        let index = 0;
+        const rows: HTMLButtonElement[] = [];
+        // Hover highlighting only after real mouse movement — the menu can
+        // open under the resting pointer.
+        let mouseArmed = false;
+        container.addEventListener("mousemove", () => { mouseArmed = true; }, { once: true });
+
+        let lastGroup: string | undefined;
+        for (const item of opts.items) {
+          if (item.group && item.group !== lastGroup) {
+            const head = document.createElement("div");
+            head.className = "ew-menu__group";
+            head.textContent = item.group;
+            container.appendChild(head);
+            lastGroup = item.group;
+          }
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "ew-menu__item" + (item.danger ? " is-danger" : "");
+          row.setAttribute("role", "menuitem");
+          row.id = `ew-menu-${item.id}`;
+          row.disabled = !!item.disabled;
+          const title = document.createElement("span");
+          title.className = "ew-menu__title";
+          title.textContent = item.title;
+          row.appendChild(title);
+          if (item.hint) {
+            const hint = document.createElement("span");
+            hint.className = "ew-menu__hint";
+            hint.textContent = item.hint;
+            row.appendChild(hint);
+          }
+          row.addEventListener("mouseenter", () => {
+            if (!mouseArmed) return;
+            const i = enabled.indexOf(item);
+            if (i >= 0) { index = i; highlight(); }
+          });
+          row.addEventListener("click", (e) => {
+            e.preventDefault();
+            close();
+            item.action();
+          });
+          container.appendChild(row);
+          if (!item.disabled) rows.push(row);
+        }
+
+        const highlight = () => {
+          rows.forEach((r, i) => r.classList.toggle("is-active", i === index));
+          // Scroll ONLY the menu's own list — scrollIntoView walks every
+          // scrollable ancestor including the page (the jump-to-top bug).
+          scrollRowIntoList(container, rows[index]);
+        };
+        highlight();
+
+        const onKey = (e: KeyboardEvent) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault(); e.stopPropagation();
+            index = (index + 1) % enabled.length;
+            highlight();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault(); e.stopPropagation();
+            index = (index - 1 + enabled.length) % enabled.length;
+            highlight();
+          } else if (e.key === "Enter") {
+            e.preventDefault(); e.stopPropagation();
+            const item = enabled[index];
+            close();
+            item?.action();
+          }
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+      },
+    });
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+
+  notify(message: string): void {
+    const toast = document.createElement("div");
+    toast.className = "ew-toast";
+    toast.setAttribute("role", "status");
+    toast.textContent = message;
+    this.layer.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("is-visible"));
+    setTimeout(() => {
+      toast.classList.remove("is-visible");
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
+  }
+
+  closeAll(): void {
+    this.active?.cleanup();
+    this.active = null;
+    this.savedRange = null;
+  }
+
+  destroy(): void {
+    this.closeAll();
+    this.layer.remove();
+  }
+}
+
+/**
+ * A small labeled-fields form inside a popover — shared by the link editor
+ * and the image inserter. Internal helper, not part of the public EditorUI.
+ */
+export function buildFieldForm(
+  container: HTMLElement,
+  opts: {
+    fields: Array<{ name: string; placeholder: string; value?: string; label: string }>;
+    submitLabel: string;
+    /** Extra action buttons rendered next to submit (e.g. "Remove"). */
+    actions?: Array<{ label: string; danger?: boolean; onPick(): void }>;
+    onSubmit(values: Record<string, string>): void;
+  },
+): void {
+  const form = document.createElement("form");
+  form.className = "ew-popover__form";
+  const inputs = new Map<string, HTMLInputElement>();
+  for (const field of opts.fields) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.name = field.name;
+    input.placeholder = field.placeholder;
+    input.value = field.value ?? "";
+    input.setAttribute("aria-label", field.label);
+    input.className = "ew-popover__input";
+    inputs.set(field.name, input);
+    form.appendChild(input);
+  }
+  const row = document.createElement("div");
+  row.className = "ew-popover__actions";
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.className = "ew-popover__btn ew-popover__btn--primary";
+  submit.textContent = opts.submitLabel;
+  row.appendChild(submit);
+  for (const action of opts.actions ?? []) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ew-popover__btn" + (action.danger ? " is-danger" : "");
+    btn.textContent = action.label;
+    btn.addEventListener("click", (e) => { e.preventDefault(); action.onPick(); });
+    row.appendChild(btn);
+  }
+  form.appendChild(row);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const values: Record<string, string> = {};
+    inputs.forEach((input, name) => { values[name] = input.value.trim(); });
+    opts.onSubmit(values);
+  });
+  container.appendChild(form);
+  setTimeout(() => inputs.values().next().value?.focus(), 0);
+}
+
+/**
+ * Keep the caret comfortably inside its own scroller — never at the very
+ * edge, and never below the fold.
+ *
+ * Browsers do scroll a caret into view while you type, but only just: the
+ * line you are writing ends up flush against the bottom of the box, with
+ * nothing visible beneath it. In a page-height editor the document-length
+ * bottom padding hides that. In an embedded one — a composer given a fixed
+ * box by its host — there is no such padding, and writing at the end of a
+ * document means writing on the last visible pixel row. Reported against an
+ * app embedding this editor:
+ *
+ *   "when I move to the last line and press Enter … ideally the whole thing
+ *    should scroll up so that the user always sees the cursor and also a few
+ *    more new lines below that."
+ *
+ * `margin` is that breathing room, in pixels. The caret is pushed away from
+ * whichever edge it is near; if the box is too short to honour the margin on
+ * both sides at once, being able to SEE the caret wins.
+ *
+ * Native browser behaviour is deliberately left in place — this only ever
+ * scrolls further, never fights it, and does nothing when the caret is
+ * already comfortable.
+ */
+export function keepCaretInView(scroller: HTMLElement, margin = 56): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const range = selection.getRangeAt(0);
+  if (!scroller.contains(range.startContainer)) return;
+
+  // A collapsed range at a block boundary can measure 0×0; the closest
+  // element's box is the honest fallback for "where the caret is".
+  let rect = range.getBoundingClientRect();
+  if (rect.height === 0) {
+    const node =
+      range.startContainer.nodeType === 1
+        ? (range.startContainer as HTMLElement)
+        : range.startContainer.parentElement;
+    const fallback = node?.getBoundingClientRect();
+    if (!fallback || fallback.height === 0) return;
+    rect = fallback;
+  }
+
+  const box = scroller.getBoundingClientRect();
+  // Never demand more room than the box can give, or a short editor would
+  // scroll forever trying to satisfy both margins.
+  const room = Math.max(0, Math.min(margin, (box.height - rect.height) / 2));
+
+  const below = rect.bottom - (box.bottom - room);
+  const above = box.top + room - rect.top;
+  if (below > 0) scroller.scrollTop += below;
+  else if (above > 0) scroller.scrollTop -= above;
+}
+
+/** Scroll a row into view WITHIN its list container only — never the page. */
+export function scrollRowIntoList(container: HTMLElement, row: HTMLElement | undefined): void {
+  if (!row) return;
+  const top = row.offsetTop;
+  const bottom = top + row.offsetHeight;
+  if (top < container.scrollTop) container.scrollTop = top;
+  else if (bottom > container.scrollTop + container.clientHeight) {
+    container.scrollTop = bottom - container.clientHeight;
+  }
+}
+
+// ── Positioning ─────────────────────────────────────────────────────────────
+
+/**
+ * Place a floating panel against an anchor, writing DOCUMENT coordinates onto
+ * an absolutely-positioned element.
+ *
+ * `placement` is the side the panel PREFERS. It flips to the opposite side
+ * when the preferred one cannot hold it, and clamps into the viewport when
+ * neither can. Both directions matter, and each has been a real bug:
+ *
+ *  - preferring "above" without a flip put a popover opened near the top of
+ *    the window off the top edge (this function already handled that one);
+ *  - preferring "below" without a flip put the slash menu off the BOTTOM
+ *    edge. That is the common case rather than an exotic one — an editor
+ *    pane of fixed height usually ends at the fold, so typing `/` on its
+ *    last line placed a 320px menu entirely below the viewport and the menu
+ *    simply appeared not to open.
+ *
+ * `el` must be measurable when this is called — laid out, not `display:
+ * none` — or its height reads 0 and nothing can be decided about which side
+ * fits. Callers that toggle visibility must reveal first, then position.
+ */
+export function position(
+  el: HTMLElement,
+  anchor: HTMLElement | DOMRect,
+  placement: "above" | "below",
+): void {
+  const rect = anchor instanceof HTMLElement ? anchor.getBoundingClientRect() : anchor;
+  const { width, height } = el.getBoundingClientRect();
+  const gap = 6;
+  const margin = 8;
+  const viewportW = document.documentElement.clientWidth;
+  const viewportH = document.documentElement.clientHeight;
+
+  // Everything below is viewport-relative; the scroll offset goes on last.
+  const left = Math.max(margin, Math.min(rect.left, viewportW - width - margin));
+
+  const above = rect.top - gap - height;
+  const below = rect.bottom + gap;
+  const fitsAbove = above >= margin;
+  const fitsBelow = below + height <= viewportH - margin;
+  let top =
+    placement === "above"
+      ? fitsAbove || !fitsBelow
+        ? above
+        : below
+      : fitsBelow || !fitsAbove
+        ? below
+        : above;
+  // Neither side fits — a panel taller than the window. Pin it inside the
+  // viewport so at least its top is reachable; it scrolls internally.
+  top = Math.max(margin, Math.min(top, viewportH - height - margin));
+
+  el.style.left = `${Math.round(left + window.scrollX)}px`;
+  el.style.top = `${Math.round(top + window.scrollY)}px`;
+}
