@@ -1,6 +1,6 @@
 {
   "name": "@xmsbl/quilldown-render",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The single Markdown-to-HTML pipeline (marked GFM + Prism + heading ids + line anchors).",
   "license": "MIT",
   "author": "chengshy123 <88560859@qq.com>",

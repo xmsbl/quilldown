@@ -1,6 +1,6 @@
 name: Release
 
-# 发车口径：五个发布包共用一个 tag（当前 `v0.3.0`），推上来即发布。
+# 发车口径：五个发布包共用一个 tag（当前 `v0.4.0`），推上来即发布。
 # 认证 = **npm trusted publishing（OIDC）**，**不需要任何 Secret**：
 #   前置（每个包一次性，只有包已存在于 registry 才能配）：
 #     npmjs.com → 包 → Settings → Trusted publishing → GitHub Actions，
