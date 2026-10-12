@@ -19,14 +19,22 @@
 // stylesheet explicitly via `import "edodo-write/styles.css"`).
 import "../styles.css";
 
-import { parseMarkdown, createMarkdownParser, type ParseOptions } from "../core/parse.js";
+import {
+  parseMarkdown,
+  createMarkdownParser,
+  createMarkdownDocumentRenderer,
+  type ParseOptions,
+  type RenderedDocument,
+} from "../core/parse.js";
 import { htmlToMarkdown } from "../core/serialize.js";
 import { corePreset } from "../core/preset.js";
 import { resolvePlugins } from "../core/plugin.js";
 import type { EdodoPlugin } from "../core/types.js";
 
 export { EdodoWrite } from "../core/editor.js";
-export { parseMarkdown, createMarkdownParser, decorateTaskLists } from "../core/parse.js";
+export { parseMarkdown, createMarkdownParser, createMarkdownDocumentRenderer, decorateTaskLists } from "../core/parse.js";
+export type { RenderedDocument } from "../core/parse.js";
+export type { LineAnchor } from "../core/render.js";
 export { htmlToMarkdown, createMarkdownSerializer, tidyMarkdown } from "../core/serialize.js";
 export { sanitizeHtml } from "../core/sanitize.js";
 export { applyCommand, isInlineActive } from "../core/commands.js";
@@ -85,6 +93,8 @@ export function toHTML(markdown: string, opts?: ParseOptions): string {
 export interface RenderCodec {
   /** Markdown → sanitised, plugin-aware HTML. */
   render(md: string, opts?: ParseOptions): string;
+  /** 同一份 HTML + **顶级块的行锚点**（分屏预览的滚动同步用）。 */
+  renderDocument(md: string, opts?: ParseOptions): RenderedDocument;
 }
 
 /**
@@ -99,8 +109,8 @@ export interface RenderCodec {
  */
 export function createRenderCodec(plugins: EdodoPlugin[] = [], exclude?: string[]): RenderCodec {
   const registry = resolvePlugins([corePreset(), ...plugins], exclude);
-  const parse = createMarkdownParser(registry.markedExtensions, registry.sanitize);
-  return { render: (md, opts) => parse(md, opts) };
+  const renderDocument = createMarkdownDocumentRenderer(registry.markedExtensions, registry.sanitize);
+  return { render: (md, opts) => renderDocument(md, opts).html, renderDocument };
 }
 
 /**

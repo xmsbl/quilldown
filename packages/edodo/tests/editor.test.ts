@@ -11,7 +11,7 @@ function mount(value = "") {
 describe("EdodoWrite lifecycle", () => {
   it("hydrates from Markdown and reads it back", () => {
     const { editor } = mount("# Title\n\nHello **world**");
-    expect(editor.getHTML()).toContain("<h1>Title</h1>");
+    expect(editor.getHTML()).toContain('<h1 id="title">Title</h1>');
     expect(editor.getMarkdown()).toBe("# Title\n\nHello **world**");
     editor.destroy();
   });

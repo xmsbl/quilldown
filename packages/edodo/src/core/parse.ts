@@ -12,10 +12,11 @@
  * `parseMarkdown` stays bound to a default instance.
  */
 
-import { Marked, type MarkedExtension } from "marked";
+import { Marked, type MarkedExtension, type Token } from "marked";
 import { parseDocument, DomUtils } from "htmlparser2";
 import render from "dom-serializer";
 import { isTag, type Element } from "domhandler";
+import { buildRendererLayer, lineAnchors, resetSlugger, type LineAnchor } from "./render.js";
 import { sanitizeHtml, type SanitizeOptions } from "./sanitize.js";
 
 export interface ParseOptions {
@@ -34,20 +35,58 @@ export interface ParseOptions {
   decorateTasks?: boolean;
 }
 
+/**
+ * 渲染产物的两个半边：HTML + **顶级块的行锚点**（分屏滚动同步用）。
+ *
+ * 与 `createMarkdownParser` 走的是**同一条** lex→parse 路径，所以 `html` 逐字节一致；
+ * 行锚点只是同一份 token 流的副产物（不额外渲染一次）。
+ */
+export interface RenderedDocument {
+  html: string;
+  anchors: LineAnchor[];
+}
+
+/**
+ * 建一个「文档渲染器」：同一份 markdown 恒产出同一份 HTML + 锚点。
+ *
+ * 渲染规则由 `./render.js` 的渲染层提供（标题 `id` 锚点 + Prism 代码高亮）——
+ * 编辑器的编辑面、分屏预览、宿主落库**共用这一层**。
+ */
+export function createMarkdownDocumentRenderer(
+  extensions: MarkedExtension[] = [],
+  sanitizeOptions?: SanitizeOptions,
+): (md: string, opts?: ParseOptions) => RenderedDocument {
+  const marked = new Marked({ gfm: true, breaks: false });
+  // 先 use 我们的渲染层：插件仍可用 `marked.use({ renderer })` 覆盖单个方法；
+  // 插件要「让位」时别 `return false`，改调 `renderCode`（见 `./render.js`）。
+  marked.use({ renderer: buildRendererLayer() });
+  for (const ext of extensions) marked.use(ext);
+  return (md: string, opts: ParseOptions = {}): RenderedDocument => {
+    resetSlugger(); // 标题 id 必须文档内唯一 → 每份文档一套去重表
+    const src = String(md ?? "");
+    // ⚠ 必须走 `marked.parse()`：只有它会跑插件的 `hooks.postprocess`
+    // （脚注的尾段就是在那里拼的）；拆成 lexer+parser 会静默丢掉。
+    const raw = String(marked.parse(src, { async: false }));
+    // 行锚点另取一份 token 流：与上面同源同参数，块顺序恒一致。
+    const tokens = marked.lexer(src) as Token[];
+    // The sanitiser is DOM-free — it ALWAYS runs (browser, jsdom, or bare
+    // Node/SSR) unless the caller opts into the trusted-input fast path.
+    const html =
+      opts.sanitize === false
+        ? raw
+        : opts.decorateTasks === false
+          ? sanitizeHtml(raw, sanitizeOptions)
+          : decorateTaskLists(sanitizeHtml(raw, sanitizeOptions));
+    return { html, anchors: lineAnchors(tokens) };
+  };
+}
+
 export function createMarkdownParser(
   extensions: MarkedExtension[] = [],
   sanitizeOptions?: SanitizeOptions,
 ): (md: string, opts?: ParseOptions) => string {
-  const marked = new Marked({ gfm: true, breaks: false });
-  for (const ext of extensions) marked.use(ext);
-  return (md: string, opts: ParseOptions = {}) => {
-    const raw = String(marked.parse(md ?? "", { async: false }));
-    // The sanitiser is DOM-free — it ALWAYS runs (browser, jsdom, or bare
-    // Node/SSR) unless the caller opts into the trusted-input fast path.
-    if (opts.sanitize === false) return raw;
-    const clean = sanitizeHtml(raw, sanitizeOptions);
-    return opts.decorateTasks === false ? clean : decorateTaskLists(clean);
-  };
+  const renderDocument = createMarkdownDocumentRenderer(extensions, sanitizeOptions);
+  return (md: string, opts?: ParseOptions) => renderDocument(md, opts).html;
 }
 
 const defaultParse = (() => {

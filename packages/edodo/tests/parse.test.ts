@@ -3,8 +3,8 @@ import { parseMarkdown, decorateTaskLists } from "@core/parse";
 
 describe("parseMarkdown", () => {
   it("renders headings", () => {
-    expect(parseMarkdown("# Hello")).toContain("<h1>Hello</h1>");
-    expect(parseMarkdown("### Three")).toContain("<h3>Three</h3>");
+    expect(parseMarkdown("# Hello")).toContain('<h1 id="hello">Hello</h1>');
+    expect(parseMarkdown("### Three")).toContain('<h3 id="three">Three</h3>');
   });
 
   it("renders inline marks", () => {

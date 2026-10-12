@@ -22,7 +22,7 @@ describe("sanitiser is DOM-free (bare Node)", () => {
     expect(out).not.toMatch(/<script/i);
     expect(out).not.toMatch(/onerror/i);
     expect(out).not.toMatch(/javascript:/i);
-    expect(out).toContain("<h1>Hi</h1>");
+    expect(out).toContain('<h1 id="hi">Hi</h1>');
   });
 
   it("sanitizeHtml does not throw in Node", () => {
@@ -49,7 +49,7 @@ describe("sanitiser is DOM-free (bare Node)", () => {
     // Reference captured from the jsdom run (see the assertions above); the
     // point here is that the Node render is deterministic and sanitised.
     const out = toHTML(md);
-    expect(out).toContain("<h1>Title</h1>");
+    expect(out).toContain('<h1 id="title">Title</h1>');
     expect(out).toContain("&amp;");
     expect(out).not.toMatch(/<script|onerror|javascript:/i);
   });

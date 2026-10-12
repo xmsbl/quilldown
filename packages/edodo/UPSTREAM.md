@@ -26,6 +26,22 @@
 
 依赖去重：`marked` 全仓只剩一份 18.1.0（core 与 edodo 共用）。
 
+### 批次 2：渲染层（标题 id + Prism 高亮 + 行锚点）
+
+新增 `src/core/render.ts`（渲染层），并从 core 搬入 `slug.ts` / `languages.ts` / `prism/`，接到 `src/core/parse.ts` 的 `createMarkdownParser` 上 —— 编辑面、分屏预览、宿主落库**共用这一层**：
+
+- `heading` → `<hN id="…">`（同名追加 `-1`/`-2`；中文标题保留 Unicode 字母）
+- `code` → Prism 高亮（13 语言，与 core 同口径）
+- 新增 `createMarkdownDocumentRenderer` / `RenderCodec.renderDocument` → `{ html, anchors }`（顶级块 ↔ 源行）
+
+⚠ 两条坑（写在这里免得再踩）：
+
+- 求行锚点**不能**用 `marked.lexer()` + `marked.parser()` 出 HTML：会跳过插件的 `hooks.postprocess`（脚注尾段直接没了）。必须 `marked.parse()` 出 HTML，另取一份 token 流算锚点。
+- `renderCode` **保留上游「恰好一个尾随换行」**，编辑器的代码块 ZWSP 尾随行靠它。
+- 插件在 `renderer.code` 里让位时**别 `return false`**（会掉到 marked 默认渲染器、丢 Prism 高亮）→ 改调 `renderCode`。
+
+依赖：新增 `prismjs`（+ `@types/prismjs`）。测试断言：4 处上游写死的无 id 标题改为带 id（`parse.test.ts` / `sanitize-node.test.ts` ×2 / `editor.test.ts`）。
+
 ## 同步上游
 
 ```bash

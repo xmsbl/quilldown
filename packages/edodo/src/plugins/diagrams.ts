@@ -19,6 +19,7 @@ import { definePlugin, type EdodoPlugin, type EditorContext } from "../lib/index
 import { createWidget, mountWidgets, wireWidgetEditing, escapeAttr, type WidgetSpec } from "./widget.js";
 import type TurndownService from "turndown";
 import type { Tokens } from "marked";
+import { renderCode } from "../core/render.js";
 import type { EdodoDraw as EdodoDrawEngine } from "edododraw";
 
 declare module "../core/types.js" {
@@ -132,12 +133,13 @@ function buildDiagramsPlugin(
     markdown: {
       marked: [{
         renderer: {
-          // marked v13+：renderer 收到 **token 对象**（v12 是位置参数）。返回 false
-          // 回落到默认 code 渲染 —— 未注册的语言（```js、裸 ```）必须保持普通代码块。
-          code({ text, lang: infostring }: Tokens.Code): string | false {
-            const lang = (infostring ?? "").trim().split(/\s+/)[0] ?? "";
-            if (!lang || !(lang in renderers)) return false;
-            return `<figure data-widget="${KIND}" data-lang="${escapeAttr(lang)}" data-source="${escapeAttr(text)}"></figure>\n`;
+          // marked v13+：renderer 收到 **token 对象**（v12 是位置参数）。未注册的语言
+          // （```js、裸 ```）必须保持普通代码块 —— 让位时不能 `return false`
+          // （会掉到 marked 默认渲染器、丢 Prism 高亮），改调渲染层的 renderCode。
+          code(token: Tokens.Code): string | false {
+            const lang = (token.lang ?? "").trim().split(/\s+/)[0] ?? "";
+            if (!lang || !(lang in renderers)) return renderCode(token);
+            return `<figure data-widget="${KIND}" data-lang="${escapeAttr(lang)}" data-source="${escapeAttr(token.text)}"></figure>\n`;
           },
         },
       }],
