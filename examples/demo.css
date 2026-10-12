@@ -10,6 +10,9 @@
   --surface: #f6f8fa;
   --accent: #0f766e;
   --mono: ui-monospace, sfmono-regular, menlo, consolas, monospace;
+  /* 与宿主一致：内容宽 1134、编辑器高 756（演示页只做这一个尺寸） */
+  --content: 1134px;
+  --editor-h: 756px;
   color-scheme: light;
 }
 
@@ -64,7 +67,8 @@ body {
   top: 0;
   align-items: center;
   gap: 0.9rem;
-  padding: 0.55rem 1rem;
+  /* 顶栏内容与编辑器同宽居中；背景 / 底边框仍通栏 */
+  padding: 0.55rem max(1rem, calc((100% - var(--content)) / 2));
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
@@ -107,15 +111,15 @@ body {
   font-size: 0.82em;
 }
 
-/* 编辑器页 */
+/* 编辑器页：内容盒恒为 --content（+ 两侧 1rem 内边距）*/
 .page {
-  max-width: 860px;
+  max-width: calc(var(--content) + 2rem);
   margin: 0 auto;
   padding: 1.25rem 1rem 3rem;
 }
 
 .page #editor {
-  min-height: 55vh;
+  min-height: var(--editor-h);
 }
 
 .out-wrap {
@@ -143,9 +147,9 @@ body {
   word-break: break-word;
 }
 
-/* 分屏页：编辑器撑满剩余高度 */
+/* 分屏页：高度与另一例一致（不留圆角，撑满内容宽）*/
 .page-split #editor {
-  --qd-split-height: calc(100vh - 3.05rem);
+  --qd-split-height: var(--editor-h);
   --qd-split-radius: 0;
 }
 
