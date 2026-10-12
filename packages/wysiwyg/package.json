@@ -33,10 +33,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./zh": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.zh.js"
-    },
     "./index.css": "./dist/index.css",
     "./package.json": "./package.json"
   },
@@ -44,11 +40,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@xmsbl/quilldown-core": "^0.2.0"
+    "@xmsbl/quilldown-core": "^0.2.0",
+    "@xmsbl/quilldown-edodo": "^0.10.0"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
-    "vendor": "node scripts/vendor.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   }
 }

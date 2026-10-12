@@ -18,8 +18,13 @@ export default defineConfig({
     // core 外置（IIFE 取全局 `QuilldownCore`）：marked + Prism 已经在 core 产物里，
     // 两个包各打一份等于宿主页面里跑两套词法器
     rollupOptions: {
-      external: ["@xmsbl/quilldown-core"],
-      output: { globals: { "@xmsbl/quilldown-core": "QuilldownCore" } },
+      external: ["@xmsbl/quilldown-core", "@xmsbl/quilldown-render"],
+      output: {
+        globals: {
+          "@xmsbl/quilldown-core": "QuilldownCore",
+          "@xmsbl/quilldown-render": "QuilldownRender",
+        },
+      },
     },
     sourcemap: true,
   },

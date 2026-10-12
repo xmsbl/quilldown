@@ -1,9 +1,9 @@
 /**
  * 库**自有**文案（placeholder / 大纲标签 / 空段落占位）—— 运行时 `locale` 选项。
  *
- * edodo 内建文案（斜杠菜单 / 表格控件 / 块菜单…）**不在**这里：上游没有 i18n 接口，
- * 由构建期把 `locales/<lang>.tsv` 施加到原件上（见 `scripts/build.mjs`），
- * 所以 edodo 那半是「一个产物一个 locale」，而这半随时可换。
+ * edodo 内建文案（斜杠菜单 / 表格控件 / 块菜单…）**不在**这里：那是 `@xmsbl/quilldown-edodo`
+ * 自己的字典（`src/core/i18n.ts`），由同名的 `locale` 选项切换。
+ * 这里只管本包自有的这几个串，随时可换。
  */
 export interface EditorStrings {
   /** 空文档占位（edodo 的 `data-placeholder`）。 */

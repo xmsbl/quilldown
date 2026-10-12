@@ -99,6 +99,21 @@ export function parseMarkdown(md: string, opts: ParseOptions = {}): string {
   return defaultParse(md, opts);
 }
 
+const defaultRenderDocument = (() => {
+  let fn: ((md: string, opts?: ParseOptions) => RenderedDocument) | null = null;
+  return (md: string, opts?: ParseOptions) => (fn ??= createMarkdownDocumentRenderer())(md, opts);
+})();
+
+/** 与 `parseMarkdown` **同一份** HTML，另外给出每个顶级块的源行区间。 */
+export function renderDocument(md: string, opts: ParseOptions = {}): RenderedDocument {
+  return defaultRenderDocument(md, opts);
+}
+
+/** `parseMarkdown` 的同义入口 —— “落库 HTML”的惯用叫法。 */
+export function renderHtml(md: string, opts: ParseOptions = {}): string {
+  return parseMarkdown(md, opts);
+}
+
 /** Add a class to an element's `class` attribute (deduped, like classList). */
 function addClass(el: Element, cls: string): void {
   const classes = (el.attribs.class ?? "").split(/\s+/).filter(Boolean);

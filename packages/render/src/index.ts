@@ -7,6 +7,8 @@
 
 export {
   parseMarkdown,
+  renderHtml,
+  renderDocument,
   createMarkdownParser,
   createMarkdownDocumentRenderer,
   decorateTaskLists,

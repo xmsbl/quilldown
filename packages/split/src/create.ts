@@ -15,8 +15,10 @@
  *         ├ .editor-split-write   → textarea.editor-split-source
  *         └ .editor-split-preview → .editor-split-body（core 的 HTML；块上带 data-line-*）
  */
-import { bindForm, renderDocument } from "@xmsbl/quilldown-core";
-import type { EditorInstance, EditorOptions, FormBinding, LineAnchor } from "@xmsbl/quilldown-core";
+import { bindForm } from "@xmsbl/quilldown-core";
+import { renderDocument } from "@xmsbl/quilldown-render";
+import type { EditorInstance, EditorOptions, FormBinding } from "@xmsbl/quilldown-core";
+import type { LineAnchor } from "@xmsbl/quilldown-render";
 
 import { createIcon } from "./icons.js";
 import { createScrollSync, writeLineAnchors } from "./scroll-sync.js";

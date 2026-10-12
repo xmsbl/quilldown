@@ -33,9 +33,8 @@ describe("renderHtml: GFM 基本块", () => {
   it("GFM 表格 / 删除线 / 任务列表 / 自动链接", () => {
     expect(renderHtml("| a | b |\n| - | - |\n| 1 | 2 |\n")).toContain("<table>");
     expect(renderHtml("~~删~~")).toBe("<p><del>删</del></p>\n");
-    expect(renderHtml("- [x] 做完了\n")).toContain(
-      '<input checked="" disabled="" type="checkbox">',
-    );
+    expect(renderHtml("- [x] 做完了\n")).toContain('<li class="task-list-item" data-task="done">');
+    expect(renderHtml("- [x] 做完了\n")).toContain('<input checked="" type="checkbox">');
     expect(renderHtml("见 https://example.com/x 。")).toContain(
       '<a href="https://example.com/x">https://example.com/x</a>',
     );
@@ -53,15 +52,15 @@ describe("renderHtml: GFM 基本块", () => {
   });
 });
 
-describe("renderHtml: 原始 HTML 一律转义", () => {
-  it("块级 <script> 变成文字", () => {
+describe("renderHtml: 原始 HTML 走 sanitize 白名单", () => {
+  it("块级 <script> 整段丢掉（连内容一起，不构成可见文本）", () => {
     const html = renderHtml("<script>alert(1)</script>\n");
-    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>");
+    expect(html).not.toContain("alert(1)");
   });
 
-  it("行内 HTML 同样转义（不执行、不落标签）", () => {
-    expect(renderHtml("前面<div>x</div>后面")).toBe("<p>前面&lt;div&gt;x&lt;/div&gt;后面</p>\n");
+  it("白名单内的标签作为真元素存活（div 允许）", () => {
+    expect(renderHtml("<div>x</div>\n")).toContain("<div>x</div>");
   });
 });
 
@@ -82,13 +81,13 @@ describe("renderHtml: 代码高亮", () => {
 
   it("未收录语言：不高亮、照样带 language- 类（CSS 钩子保留）", () => {
     expect(renderHtml("```caddyfile\nroot * /srv\n```\n")).toBe(
-      '<pre><code class="language-caddyfile">root * /srv</code></pre>\n',
+      '<pre><code class="language-caddyfile">root * /srv\n</code></pre>\n',
     );
   });
 
   it("无语言：纯转义", () => {
     expect(renderHtml("```\nplain & text\n```\n")).toBe(
-      "<pre><code>plain &amp; text</code></pre>\n",
+      "<pre><code>plain &amp; text\n</code></pre>\n",
     );
   });
 
@@ -98,13 +97,8 @@ describe("renderHtml: 代码高亮", () => {
     expect(html).toContain('<span class="token keyword">const</span>');
   });
 
-  it("多行代码保留行结构", () => {
-    expect(renderHtml("```\na\nb\n```\n")).toBe("<pre><code>a\nb</code></pre>\n");
-  });
-
-  it("可注入自定义高亮（宿主换高亮器）", () => {
-    const html = renderHtml("```x\ncode\n```\n", { highlight: () => "<mark>code</mark>" });
-    expect(html).toBe('<pre><code class="language-x"><mark>code</mark></code></pre>\n');
+  it("多行代码保留行结构（末尾恰好一个换行 —— 上游口径，编辑器光标行靠它）", () => {
+    expect(renderHtml("```\na\nb\n```\n")).toBe("<pre><code>a\nb\n</code></pre>\n");
   });
 });
 

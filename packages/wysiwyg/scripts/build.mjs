@@ -4,16 +4,19 @@
  *
  *   node packages/wysiwyg/scripts/build.mjs
  *
- * 一次运行产出**两个 locale 变体**（edodo 的界面文案只能构建期烤 —— 上游没有 i18n 接口）：
- *   dist/index.js · dist/index.iife.js          ← 默认 en（原件本来就是英文）
- *   dist/index.zh.js · dist/index.iife.zh.js    ← zh（`locales/zh.tsv`）
- * 另有 dist/index.css（edodo 本体 + 本包样式）与 dist/index.d.ts（类型）。
+ * 两趟（口径与 core / split 一致）：
+ *   ① `es`   —— `@xmsbl/quilldown-core` 与 `@xmsbl/quilldown-edodo` 都**外置**（声明为依赖），
+ *                消费方的打包器负责去重 / 摇树；
+ *   ② `iife` —— 只外置 core（取全局 `QuilldownCore`），edodo 及其依赖**打进产物**，
+ *                让 `<script>` 直引也能自足。
  *
- * ⚠ locale 的施加点是**读取** vendored 原件的瞬间（vite plugin 的 `load`）：
- *   磁盘上那份 `vendor/edodo/standalone.js` 永远保持原件，多个变体互不污染。
- * ⚠ `@xmsbl/quilldown-core` 外置（IIFE 取全局 `QuilldownCore`）：两个包各发一份产物，
- *   免得 marked + Prism 被打进来两遍。
+ * CSS：`dist/index.css` = edodo 编辑器皮肤（`@xmsbl/quilldown-edodo/styles.css`）+ 本包样式。
+ *      **前台**只用 `@xmsbl/quilldown-edodo/content.css`（不含编辑 chrome）。
+ *
+ * 中文化走**运行时** `locale: "zh"`（`@xmsbl/quilldown-edodo` 的 `setLocale`）——
+ * 不再有「一个 locale 一份产物」（旧机制：vendor 原件 + 构建期文本替换）。
  */
+import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,72 +24,61 @@ import { fileURLToPath } from "node:url";
 import { build } from "vite";
 import dts from "vite-plugin-dts";
 
-import { applyPairs, loadPairs } from "./i18n.mjs";
-
+const require = createRequire(import.meta.url);
 const pkgRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const vendorEntry = path.join(pkgRoot, "vendor/edodo/standalone.js");
-const vendorCss = path.join(pkgRoot, "vendor/edodo/edodo-write.css");
 const dist = path.join(pkgRoot, "dist");
 
-const LOCALES = [
-  { id: "en", tsv: null, suffix: "" },
-  { id: "zh", tsv: path.join(pkgRoot, "locales/zh.tsv"), suffix: ".zh" },
-];
+const CORE = "@xmsbl/quilldown-core";
+const EDODO = "@xmsbl/quilldown-edodo";
+/** 两个懒加载三方件（`import("katex")` 公式 / `import("edododraw")` 绘图）：留着外置。 */
+const LAZY = ["katex", "edododraw"];
 
-/** 把某个 locale 的清单施加到 vendored 原件上（只在 vite 读那一份文件时发生）。 */
-function i18nPlugin(locale) {
-  const pairs = locale.tsv ? loadPairs(locale.tsv) : null;
-  return {
-    name: "quilldown:i18n",
-    enforce: "pre",
-    load(id) {
-      if (!pairs || path.resolve(id) !== vendorEntry) return null;
-      const source = readFileSync(vendorEntry, "utf8");
-      const stats = {};
-      const code = applyPairs(source, pairs, path.relative(pkgRoot, locale.tsv), stats);
-      process.stdout.write(
-        `  i18n[${locale.id}]：${stats.hits}/${pairs.length} 条命中，${stats.replaced} 处替换\n`,
-      );
-      return code;
-    },
-  };
-}
-
-rmSync(dist, { recursive: true, force: true });
-mkdirSync(dist, { recursive: true });
-
-for (const locale of LOCALES) {
+/** 一趟构建。 */
+async function pass({ format, external, globals, withTypes }) {
   await build({
     configFile: false,
     root: pkgRoot,
     logLevel: "warn",
-    // 产物里保留原文（不是 \uXXXX）：locale 变体可以直接 grep 中文，体积也更小
+    // 产物里保留原文（不是 \uXXXX）：中文文案可直接 grep
     esbuild: { charset: "utf8" },
-    plugins: [
-      i18nPlugin(locale),
-      // 类型与 locale 无关，只第一次跑
-      ...(locale.suffix === "" ? [dts({ include: ["src"] })] : []),
-    ],
+    plugins: withTypes ? [dts({ include: ["src"] })] : [],
     build: {
       lib: {
         entry: path.join(pkgRoot, "src/index.ts"),
         name: "QuilldownWysiwyg",
-        formats: ["es", "iife"],
-        fileName: (format) =>
-          format === "es" ? `index${locale.suffix}.js` : `index.iife${locale.suffix}.js`,
+        formats: [format],
+        fileName: () => (format === "es" ? "index.js" : "index.iife.js"),
       },
-      rollupOptions: {
-        external: ["@xmsbl/quilldown-core", "edododraw", "katex"],
-        output: { globals: { "@xmsbl/quilldown-core": "QuilldownCore" } },
-      },
+      rollupOptions: { external, output: { globals } },
       sourcemap: true,
       emptyOutDir: false,
     },
   });
 }
 
+rmSync(dist, { recursive: true, force: true });
+mkdirSync(dist, { recursive: true });
+
+await pass({
+  format: "es",
+  external: [CORE, EDODO, ...LAZY],
+  globals: {},
+  withTypes: true,
+});
+
+await pass({
+  format: "iife",
+  external: [CORE, ...LAZY],
+  globals: { [CORE]: "QuilldownCore" },
+  withTypes: false,
+});
+
+// 样式：edodo 皮肤（`.ew-*`）+ 本包样式，拼成一份编辑器 CSS
 writeFileSync(
   path.join(dist, "index.css"),
-  `${readFileSync(vendorCss, "utf8")}\n${readFileSync(path.join(pkgRoot, "src/styles.css"), "utf8")}`,
+  `${readFileSync(require.resolve(`${EDODO}/styles.css`), "utf8")}\n${readFileSync(
+    path.join(pkgRoot, "src/styles.css"),
+    "utf8",
+  )}`,
 );
-process.stdout.write("产物：dist/index[.zh].js · index[.zh].iife.js · index.css · index.d.ts\n");
+process.stdout.write("产物：dist/index.js · index.iife.js · index.css · index.d.ts\n");

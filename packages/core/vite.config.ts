@@ -10,7 +10,12 @@ export default defineConfig({
       formats: ["es", "iife"],
       fileName: (format) => (format === "es" ? "index.js" : "index.iife.js"),
     },
-    // marked / prismjs **打进产物**（不 external）：库交付 = 自足单文件，宿主不必再引脚本
+    // 管线（marked + Prism + sanitize + 锚点）在 `@xmsbl/quilldown-render`：
+    // 外置 → 消费方共用一份；IIFE 取全局 `QuilldownRender`（宿主先引 `render.iife.js`）
+    rollupOptions: {
+      external: ["@xmsbl/quilldown-render"],
+      output: { globals: { "@xmsbl/quilldown-render": "QuilldownRender" } },
+    },
     sourcemap: true,
   },
   plugins: [dts({ include: ["src"] })],

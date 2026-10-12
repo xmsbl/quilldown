@@ -5,8 +5,9 @@ import { describe, expect, it } from "vitest";
 /**
  * **产物**守卫（跑的是 `dist/index.iife.js`，不是 src）。
  *
- * ① IIFE 必须是「**先引 core**」的自足单文件：core 走全局 `QuilldownCore`（外置），
- *    marked / Prism 不许被打第二遍 —— 否则宿主页面里跑两套词法器（体积翻倍、token 类名可能不一致）。
+ * ① IIFE 是「先引 core + 管线包」的轻量脚本：core 走全局 `QuilldownCore`、
+ *    管线走全局 `QuilldownRender`（都外置）—— marked / Prism 不许被打进来
+ *    （否则宿主页面里跑两套词法器）。
  * ② 全局名固定 `QuilldownSplit`（CONTRACT §2：每包一个独立全局名，互不覆盖）。
  *
  * 需要先 `npm run build -w @xmsbl/quilldown-split`（根 CI 已把 build 排在 test 前）。
@@ -37,6 +38,8 @@ describe("dist/index.iife.js", () => {
     const source = read();
     const scope = globalThis as unknown as Record<string, unknown>;
     scope.QuilldownCore = { CONTRACT_VERSION: "1" };
+    // 管线包走全局（`@xmsbl/quilldown-render` 的 IIFE 名）
+    scope.QuilldownRender = { renderDocument: () => ({ html: "", anchors: [] }) };
 
     const factory = new Function(`${source}; return QuilldownSplit;`);
     const api = factory() as {
