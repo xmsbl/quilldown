@@ -66,6 +66,16 @@
   - exports 加 `./content.css`
 - 随之：token 的宿主选择器从 `.ew` 扩成 `:where(.ew, .ew-content)`，暗色 / 浅色覆盖同步
 
+### 批次 5：管线抽成 `@xmsbl/quilldown-render`
+
+管线（`parse` / `render` / `sanitize` / `slug` / `languages` / `prism`）从本包移到新包
+`packages/render`（`@xmsbl/quilldown-render`）—— **唯一一份**，core / split / fork 共用。
+
+理由：`split` 是**要发布的轻量包**，装不了私有 workspace 包；管线单独成包后它只需 external 依赖。
+
+本包侧：`src/core/parse.ts` / `src/core/sanitize.ts` 变成**薄转发**（上游那堆 `./parse.js`
+引用不必动），`src/plugins/diagrams.ts` 的 `renderCode` 改从管线包引。
+
 ## 同步上游
 
 ```bash

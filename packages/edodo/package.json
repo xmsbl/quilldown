@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@joplin/turndown-plugin-gfm": "^1.0.61",
+    "@xmsbl/quilldown-render": "^0.1.0",
     "dom-serializer": "^2.0.0",
     "domhandler": "^5.0.3",
     "htmlparser2": "^9.1.0",

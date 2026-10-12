@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const bin = (name) => path.join(root, "node_modules", ".bin", name);
 
-const PACKAGES = ["core", "wysiwyg", "split"];
+const PACKAGES = ["render", "core", "wysiwyg", "split"];
 
 const TASKS = [
   {

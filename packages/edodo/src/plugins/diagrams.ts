@@ -19,7 +19,7 @@ import { definePlugin, type EdodoPlugin, type EditorContext } from "../lib/index
 import { createWidget, mountWidgets, wireWidgetEditing, escapeAttr, type WidgetSpec } from "./widget.js";
 import type TurndownService from "turndown";
 import type { Tokens } from "marked";
-import { renderCode } from "../core/render.js";
+import { renderCode } from "@xmsbl/quilldown-render";
 import type { EdodoDraw as EdodoDrawEngine } from "edododraw";
 
 declare module "../core/types.js" {

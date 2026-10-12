@@ -34,7 +34,7 @@ import type { EdodoPlugin } from "../core/types.js";
 export { EdodoWrite } from "../core/editor.js";
 export { parseMarkdown, createMarkdownParser, createMarkdownDocumentRenderer, decorateTaskLists } from "../core/parse.js";
 export type { RenderedDocument } from "../core/parse.js";
-export type { LineAnchor } from "../core/render.js";
+export type { LineAnchor } from "@xmsbl/quilldown-render";
 export { htmlToMarkdown, createMarkdownSerializer, tidyMarkdown } from "../core/serialize.js";
 export { sanitizeHtml } from "../core/sanitize.js";
 export { setLocale, getLocale, t } from "../core/i18n.js";
