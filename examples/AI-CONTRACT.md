@@ -12,6 +12,7 @@ Work in two stages: **verify in HTML first, write TypeScript only after the user
 
 - `examples/wysiwyg.html`, `examples/split.html` — runnable pages that load the
   **published** build from a CDN (`unpkg.com/@xmsbl/quilldown-*`).
+- Keep the mount element's `data-editor-mount` attribute — the library's CSS is scoped to it.
 - In Stage 1 these HTML files are the **only** files you touch.
 
 ## 3. Rules
