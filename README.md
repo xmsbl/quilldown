@@ -40,6 +40,7 @@ editor.getHtml(); // rendered HTML (= core.renderHtml(md))
 IIFE (no bundler):
 
 ```html
+<script src="https://unpkg.com/@xmsbl/quilldown-render/dist/index.iife.js"></script>
 <script src="https://unpkg.com/@xmsbl/quilldown-core/dist/index.iife.js"></script>
 <script src="https://unpkg.com/@xmsbl/quilldown-wysiwyg/dist/index.iife.js"></script>
 ```

@@ -76,6 +76,13 @@
 本包侧：`src/core/parse.ts` / `src/core/sanitize.ts` 变成**薄转发**（上游那堆 `./parse.js`
 引用不必动），`src/plugins/diagrams.ts` 的 `renderCode` 改从管线包引。
 
+### 批次 6：接到上层
+
+- `wysiwyg` 删掉 vendor + 构建期 i18n（`vendor.mjs` / `i18n.mjs` / `locales/`），改
+  `dependencies: @xmsbl/quilldown-edodo`：ES 外置本包（消费方摇树），IIFE 把本包打进产物；
+  中文化改运行时 `locale: "zh"`。
+- 管线包（`@xmsbl/quilldown-render`）成为唯一管线，`core` 退成再导出。
+
 ## 同步上游
 
 ```bash

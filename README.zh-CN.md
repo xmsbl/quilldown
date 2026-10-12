@@ -40,6 +40,7 @@ editor.getHtml(); // 落库 HTML（= core.renderHtml(md)）
 不走打包器（IIFE）：
 
 ```html
+<script src="https://unpkg.com/@xmsbl/quilldown-render/dist/index.iife.js"></script>
 <script src="https://unpkg.com/@xmsbl/quilldown-core/dist/index.iife.js"></script>
 <script src="https://unpkg.com/@xmsbl/quilldown-wysiwyg/dist/index.iife.js"></script>
 ```
