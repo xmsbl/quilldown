@@ -1,46 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Quilldown — demos</title>
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-content: center;
-        gap: 1.5rem;
-        font: 16px/1.6 system-ui, sans-serif;
-        text-align: center;
-      }
-      h1 {
-        margin: 0;
-        font-size: 1.4rem;
-      }
-      ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-      }
-      a {
-        color: #0f766e;
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
-      }
-    </style>
+    <title>Quilldown · 在线演示</title>
+    <link rel="stylesheet" href="./demo.css" />
   </head>
   <body>
-    <h1>Quilldown</h1>
-    <ul>
-      <li><a href="./wysiwyg.html">wysiwyg demo</a></li>
-      <li><a href="./split.html">split demo</a></li>
-    </ul>
-    <p><a href="https://github.com/xmsbl/quilldown">GitHub</a></p>
+    <main class="landing">
+      <h1>Quilldown</h1>
+      <p class="lead">宿主无关的 Markdown 编辑器 —— 两款编辑器，共用一条渲染管线。</p>
+      <div class="cards">
+        <a class="card" href="./wysiwyg.html">
+          <h2>所见即所得</h2>
+          <p>contenteditable 里直接编辑富文本，适合写正文。</p>
+        </a>
+        <a class="card" href="./split.html">
+          <h2>分屏预览</h2>
+          <p>左边源码、右边预览，滚动实时同步。</p>
+        </a>
+      </div>
+      <footer>
+        <a href="https://github.com/xmsbl/quilldown">GitHub</a> ·
+        <a href="https://www.npmjs.com/package/@xmsbl/quilldown-wysiwyg">npm</a>
+      </footer>
+    </main>
   </body>
 </html>

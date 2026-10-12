@@ -1,67 +1,55 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Quilldown — WYSIWYG demo</title>
+    <title>Quilldown · 所见即所得</title>
     <link rel="stylesheet" href="https://unpkg.com/@xmsbl/quilldown-wysiwyg/index.css" />
-    <style>
-      body {
-        margin: 0;
-        font:
-          15px/1.6 system-ui,
-          sans-serif;
-      }
-      header {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        padding: 0.6rem 1rem;
-        border-bottom: 1px solid #ddd;
-      }
-      header a {
-        margin-left: auto;
-      }
-      #editor {
-        max-width: 820px;
-        margin: 1.5rem auto;
-      }
-      pre.out {
-        max-width: 820px;
-        margin: 0 auto 3rem;
-        padding: 1rem;
-        background: #f6f8fa;
-        overflow: auto;
-      }
-    </style>
+    <link rel="stylesheet" href="./demo.css" />
   </head>
   <body>
     <!--
-      NOTE FOR AI (see examples/AI-CONTRACT.md):
-      This page loads the PUBLISHED build from unpkg. Edit the create() call and the DOM only.
-      Do NOT re-implement library features in page JS.
+      给 AI 的说明见 examples/AI-CONTRACT.md：
+      本页加载 unpkg 上的「已发布」产物，只改 create() 调用与 DOM，
+      不要在页面 JS 里重实现库的功能。
     -->
-    <header>
-      <strong>Quilldown · wysiwyg</strong>
-      <span id="stat"></span>
-      <a href="./split.html">split demo →</a>
+    <header class="bar">
+      <strong>Quilldown · <code>wysiwyg</code></strong>
+      <span class="bar-stat" id="stat"></span>
+      <span class="bar-spacer"></span>
+      <a class="bar-link" href="./split.html">分屏演示 →</a>
+      <label class="bar-dark"><input type="checkbox" id="dark" /> 暗色</label>
     </header>
 
-    <div id="editor"></div>
-    <pre class="out" id="out"></pre>
+    <main class="page">
+      <div id="editor"></div>
+      <details class="out-wrap" open>
+        <summary>渲染出的 HTML</summary>
+        <pre class="out" id="out"></pre>
+      </details>
+    </main>
 
     <script src="https://unpkg.com/@xmsbl/quilldown-core/dist/index.iife.js"></script>
-    <script src="https://unpkg.com/@xmsbl/quilldown-wysiwyg/dist/index.iife.js"></script>
+    <script src="https://unpkg.com/@xmsbl/quilldown-wysiwyg/dist/index.iife.zh.js"></script>
     <script>
+      const dark = document.getElementById("dark");
+      dark.addEventListener("change", () =>
+        document.documentElement.classList.toggle("dark", dark.checked),
+      );
+
       const out = document.getElementById("out");
       const stat = document.getElementById("stat");
 
       const editor = window.QuilldownWysiwyg.create(document.getElementById("editor"), {
-        value: "# Quilldown\n\nDrop in an image, type `/`, make a table.\n",
+        locale: "zh",
+        value:
+          "# Quilldown\n\n" +
+          "输入 `/` 呼出斜杠菜单 · 拖入图片（本地预览，不联网）· Tab 在表格里跳格。\n\n" +
+          "## 代码块\n\n```ts\nconst hi = (name: string) => `你好，${name}`;\n```\n",
         upload: (file) => Promise.resolve({ url: URL.createObjectURL(file), name: file.name }),
         onChange: (md, html) => {
           out.textContent = html;
-          stat.textContent = `${md.length} chars md`;
+          stat.textContent = `${md.length} 字`;
         },
       });
       out.textContent = editor.getHtml();

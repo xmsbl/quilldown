@@ -1,37 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Quilldown — Split demo</title>
+    <title>Quilldown · 分屏</title>
     <link rel="stylesheet" href="https://unpkg.com/@xmsbl/quilldown-split/index.css" />
-    <style>
-      body {
-        margin: 0;
-        font:
-          15px/1.6 system-ui,
-          sans-serif;
-      }
-      header {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        padding: 0.6rem 1rem;
-        border-bottom: 1px solid #ddd;
-      }
-      header a {
-        margin-left: auto;
-      }
-      #editor {
-        height: calc(100vh - 3rem);
-      }
-    </style>
+    <link rel="stylesheet" href="./demo.css" />
   </head>
-  <body>
-    <!-- NOTE FOR AI: see examples/AI-CONTRACT.md. Edit only the create() call and the DOM. -->
-    <header>
-      <strong>Quilldown · split</strong>
-      <a href="./wysiwyg.html">wysiwyg demo →</a>
+  <body class="page-split">
+    <!-- 给 AI 的说明见 examples/AI-CONTRACT.md：只改 create() 调用与 DOM。 -->
+    <header class="bar">
+      <strong>Quilldown · <code>split</code></strong>
+      <span class="bar-spacer"></span>
+      <a class="bar-link" href="./wysiwyg.html">所见即所得 →</a>
+      <label class="bar-dark"><input type="checkbox" id="dark" /> 暗色</label>
     </header>
 
     <div id="editor"></div>
@@ -39,8 +21,17 @@
     <script src="https://unpkg.com/@xmsbl/quilldown-core/dist/index.iife.js"></script>
     <script src="https://unpkg.com/@xmsbl/quilldown-split/dist/index.iife.js"></script>
     <script>
+      const dark = document.getElementById("dark");
+      dark.addEventListener("change", () =>
+        document.documentElement.classList.toggle("dark", dark.checked),
+      );
+
       window.QuilldownSplit.create(document.getElementById("editor"), {
-        value: "# Split\n\nWrite on the left; the right pane follows. Scroll either side.\n",
+        locale: "zh",
+        value:
+          "# 分屏\n\n" +
+          "左栏写 markdown，右栏立即出 HTML —— **滚动任意一栏，另一栏跟着走**。\n\n" +
+          "## 工具条\n\n选中文字后点工具条按钮即可加粗、斜体、引用等。\n",
       });
     </script>
   </body>
