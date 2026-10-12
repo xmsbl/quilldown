@@ -22,7 +22,10 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # enablement: 仓库没开 Pages 时自动启用为 "GitHub Actions" 源（需 pages: write）
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: examples
