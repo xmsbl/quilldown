@@ -1,6 +1,6 @@
 # @xmsbl/quilldown-wysiwyg
 
-WYSIWYG Markdown editor (contenteditable) for [Quilldown](https://github.com/xmsbl/quilldown). Authors edit the rendered page directly; a toolbar, shortcuts, a table of contents, placeholder text, and a built-in zh-CN UI (`locale: "zh-CN"`) come with it.
+WYSIWYG Markdown editor (contenteditable) for [Quilldown](https://github.com/xmsbl/quilldown). Authors edit the rendered page directly; a toolbar, shortcuts, a table of contents, placeholder text, and a built-in Chinese UI (`locale: "zh"`) come with it.
 
 ```ts
 import { create } from "@xmsbl/quilldown-wysiwyg";

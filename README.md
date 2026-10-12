@@ -24,7 +24,7 @@ It needs three things: a mount element, markdown in/out, and an upload callback.
 | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Editing    | markdown source + live preview, scroll-synced                 | the rendered page itself (contenteditable)                                                             |
 | Great for  | developers; AI-written posts; pasting code                    | non-technical authors; short posts                                                                     |
-| Upside     | markdown is exactly what you type — nothing rewrites it; tiny | no syntax to learn; toolbar, shortcuts, TOC, placeholders, zh-CN built in                              |
+| Upside     | markdown is exactly what you type — nothing rewrites it; tiny | no syntax to learn; toolbar, shortcuts, TOC, placeholders, `zh` built in                               |
 | Downside   | needs horizontal width; the two panes sync only approximately | pasted HTML is normalized by the schema (deep nesting may be rewritten); host CSS leaks in more easily |
 | JS (gzip)  | **≈69 kB** — split 5.2 + core 0.6 + render 62.9               | **≈110 kB** — wysiwyg 46.5 + core 0.6 + render 62.9                                                    |
 | CSS (gzip) | 5.2 kB                                                        | 9.7 kB                                                                                                 |
