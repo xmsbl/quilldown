@@ -1,6 +1,6 @@
 {
   "name": "@xmsbl/quilldown-split",
-  "version": "0.4.0",
+  "version": "0.2.0",
   "description": "Split Markdown editor (source + preview, with scroll sync).",
   "license": "MIT",
   "author": "chengshy123 <88560859@qq.com>",
@@ -39,8 +39,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@xmsbl/quilldown-core": "^0.4.0",
-    "@xmsbl/quilldown-render": "^0.4.0"
+    "@xmsbl/quilldown-core": "^0.2.0"
   },
   "scripts": {
     "build": "vite build",

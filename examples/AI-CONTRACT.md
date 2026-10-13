@@ -73,7 +73,7 @@ If a desired behavior needs a library change, say so explicitly. Do not fake it 
 The repo is public: <https://github.com/xmsbl/quilldown>. Read these before writing TS:
 
 - `packages/core/src/types.ts` — public API (`EditorOptions`, `EditorInstance`)
-- `packages/render/src/render.ts` — the single md→html pipeline
+- `packages/core/src/render.ts` — the single md→html pipeline
 - `packages/wysiwyg/src/create.ts`, `packages/split/src/create.ts`
 - `docs/CONTRACT.md` — the frozen contract
 

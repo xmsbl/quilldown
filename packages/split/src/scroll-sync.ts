@@ -12,7 +12,7 @@
  * 映射单位是**视觉行号**（textarea 会折行），所以要先按量尺把「源行号 → 视觉行号」算出来；
  * 量尺宽度取**内容盒**（少了 padding 会少算折行）。
  */
-import type { LineAnchor } from "@xmsbl/quilldown-render";
+import type { LineAnchor } from "@xmsbl/quilldown-core";
 
 /** 折线上的一个锚点：源文视觉行号 → 预览纵向偏移（px）。 */
 export interface AnchorPoint {

@@ -14,8 +14,8 @@ import type {
   UploadFn,
 } from "@xmsbl/quilldown-core";
 
-import { EdodoWrite } from "@xmsbl/quilldown-edodo";
-import type { EditorContext, EdodoPlugin, SelectionInfo } from "@xmsbl/quilldown-edodo";
+import { EdodoWrite } from "../vendor/edodo/standalone.js";
+import type { EdodoContext, EdodoPlugin, EdodoSelectionInfo } from "../vendor/edodo/standalone.js";
 import { bindKeys } from "./keys.js";
 import { bindPlaceholder } from "./placeholder.js";
 import { resolveStrings } from "./strings.js";
@@ -41,12 +41,12 @@ const currentBlockPlugin: EdodoPlugin = {
   name: "quilldown-current-block",
   priority: 100, // 先于核心预设（默认 0）
   on: {
-    selection: (_info: SelectionInfo | null, ctx: EditorContext) => markCurrentBlock(ctx),
-    change: (_md: string, ctx: EditorContext) => markCurrentBlock(ctx), // 回车新建块后可能不再触发 selection
+    selection: (_info: EdodoSelectionInfo | null, ctx: EdodoContext) => markCurrentBlock(ctx),
+    change: (_md: string, ctx: EdodoContext) => markCurrentBlock(ctx), // 回车新建块后可能不再触发 selection
   },
 };
 
-function markCurrentBlock(ctx: EditorContext): void {
+function markCurrentBlock(ctx: EdodoContext): void {
   const current = ctx.dom.currentBlock();
   for (const block of ctx.root.children) {
     block.classList.toggle("is-current-block", block === current);
@@ -87,9 +87,6 @@ export function create(mount: HTMLElement, options: WysiwygOptions = {}): Editor
     slashMenu: options.slashMenu ?? true,
     autofocus: options.autofocus === true,
     placeholder: options.placeholder ?? strings.placeholder,
-    // 编辑器内建文案（斜杠菜单 / 块菜单 / 表格控件…）的语言：`"en"` 默认 / `"zh"`
-    // （`exactOptionalPropertyTypes` 下不能显式传 undefined → 条件展开）
-    ...(options.locale ? { locale: options.locale } : {}),
     onChange: (next: string) => handleChange(next),
     plugins: [currentBlockPlugin],
     ...(uploadImage ? { uploadImage } : {}),
