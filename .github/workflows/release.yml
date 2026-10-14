@@ -1,12 +1,13 @@
 name: Release
 
-# 发车口径：三个发布包共用一个 tag（`v0.1.0`），推上来即发布。
+# 发车口径：五个发布包共用一个 tag（当前 `v0.4.0`），推上来即发布。
 # 认证 = **npm trusted publishing（OIDC）**，**不需要任何 Secret**：
 #   前置（每个包一次性，只有包已存在于 registry 才能配）：
 #     npmjs.com → 包 → Settings → Trusted publishing → GitHub Actions，
 #     填 xmsbl / quilldown / release.yml；**配置创建后 2 天内必须完成首次成功发布**，否则过期。
 #   首发只能手工做（包还不存在 → 配不了 trusted publisher）：
-#     `npm login && npm publish --workspaces --access public`
+#     `npm publish -w @xmsbl/quilldown-render --access public --otp=<6位>`
+#     （`render` / `edodo` 是新包名，必须先手工各发一次；core·wysiwyg·split 已在库，可直接配 OIDC）
 #   备选认证 = Granular access token（legacy / Automation token 已于 2025-11 移除）：
 #     存成 Secrets 的 `NPM_TOKEN` + 下面的 env 打开；token 必须 **Read and write（publish and stage）**
 #     且 **Bypass 2FA = true**，否则 `npm publish` 报 `E_STAGE_REQUIRED`（只允许 stage）。
@@ -35,10 +36,30 @@ jobs:
         run: node -e "const [a,b]=require('node:child_process').execSync('npm -v').toString().trim().split('.').map(Number); if (a<11 || (a===11 && b<5)) { console.error('npm 版本过低'); process.exit(1) }"
 
       # tag 与包版本必须一致 —— 不一致时 npm 报的是"already published"这类误导信息
-      - name: 校验 tag 与包版本一致
-        run: test "v$(node -p "require('./packages/core/package.json').version")" = "$GITHUB_REF_NAME"
+      - name: 校验 tag 与各包版本一致
+        run: |
+          set -euo pipefail
+          for p in render edodo core wysiwyg split; do
+            ver=$(node -p "require('./packages/$p/package.json').version")
+            test "v$ver" = "$GITHUB_REF_NAME" || { echo "$p 的 v$ver 与 tag $GITHUB_REF_NAME 不一致"; exit 1; }
+          done
 
       - run: npm run ci
 
       # provenance 由 OIDC 自动生成（公开仓 + 公开包）
-      - run: npm publish --workspaces --access public
+      # 顺序 = 依赖顺序：render → edodo → core → wysiwyg → split。
+      # 不能直接 `npm publish --workspaces`：它按包名字母序发，core 会先于 render 上线，
+      # 消费者会撞上"依赖还没上架"的窗口。已存在的版本自动跳过，重跑安全。
+      - name: 按依赖顺序发布
+        run: |
+          set -euo pipefail
+          for p in render edodo core wysiwyg split; do
+            name="@xmsbl/quilldown-$p"
+            ver=$(node -p "require('./packages/$p/package.json').version")
+            if npm view "$name@$ver" version >/dev/null 2>&1; then
+              echo "skip $name@$ver (already published)"
+            else
+              echo "publish $name@$ver"
+              npm publish -w "$name" --access public
+            fi
+          done

@@ -6,11 +6,14 @@
 
 ## 1. Hard rules
 
-- `@xmsbl/quilldown-core` is the **only** place that produces HTML (marked GFM + Prism).
-  Editor packages produce markdown; both editors' HTML is byte-identical by construction.
+- `@xmsbl/quilldown-render` is the **only** place that produces HTML (marked GFM + Prism +
+  sanitizer + heading ids + line anchors). `core` re-exports it, so host code keeps importing
+  `renderHtml` from `@xmsbl/quilldown-core`. Editor packages produce markdown; both editors'
+  HTML is byte-identical by construction (they call the same function object).
 - The library assumes nothing about the host — no server template, CSS framework, or global
   state. It needs three things: a **mount element**, **markdown in/out**, and an **upload callback**.
-- Library styles are scoped to the mount (`.qd-*`). The library reads no host config.
+- Library styles are scoped to the mount: content styling under `.ew-content` / `--ew-*`, editor
+  chrome under `--qd-*`. The library reads no host config.
 - The library persists nothing (drafts, unsaved-change guards and submit interception belong to
   the host). It exposes state via `isDirty()` and events.
 
@@ -26,7 +29,7 @@ interface EditorOptions {
   placeholder?: string;
   autofocus?: boolean;
   upload?: UploadFn;
-  renderHtml?: (md: string) => string; // default: core
+  renderHtml?: (md: string) => string; // default: the shared pipeline
   onChange?: (md: string, html: string) => void;
   onDirtyChange?: (dirty: boolean) => void;
   tocDefault?: boolean;
@@ -47,12 +50,16 @@ create(mount: HTMLElement, opts?: EditorOptions): EditorInstance;
 ```
 
 - ESM: `import { create } from "@xmsbl/quilldown-wysiwyg"`.
-- IIFE: one global per package — `window.QuilldownCore` / `window.QuilldownWysiwyg` /
-  `window.QuilldownSplit`.
-- Styles are a separate entry: `@xmsbl/quilldown-wysiwyg/index.css` /
-  `@xmsbl/quilldown-split/index.css`. The library injects no CSS at runtime.
-- `locale` has two halves: library-owned strings (runtime `locale`) and the editor's built-in
-  strings (baked at build time) — one IIFE build per locale, `dist/index.iife.zh.js` for zh.
+- IIFE: one global per package — `window.QuilldownRender` / `window.QuilldownCore` /
+  `window.QuilldownWysiwyg` / `window.QuilldownSplit`. `core` / `split` / `wysiwyg` take the
+  pipeline from the global, so **load `render.iife.js` first**.
+- Styles are separate entries: `@xmsbl/quilldown-wysiwyg/index.css` /
+  `@xmsbl/quilldown-split/index.css` (editor chrome + content), and
+  `@xmsbl/quilldown-render/content.css` (content only — what a read-only host needs). The library
+  injects no CSS at runtime.
+- `locale` is **runtime** (`"en"` default / `"zh"`; unknown values fall back to `en`). One IIFE
+  build covers every locale — there are no per-locale artifacts. `strings` overrides individual
+  entries.
 
 ## 3. DOM contract
 
@@ -87,18 +94,27 @@ The library uses attributes and `name` only; it does not depend on any `id`.
   breaking changes.
 - Contract changes must land in a commit.
 
-## 6. core output shape (`renderHtml`)
+## 6. Output shape (`renderHtml`)
 
 - GFM on, `breaks` off (tables, strikethrough, task lists, autolinks; a single newline does not break).
-- Raw HTML is escaped (`<script>alert(1)</script>` renders as text).
+- Raw HTML is **sanitised** against an allow-list (`<script>` / `<iframe>` / event handlers /
+  `javascript:` URLs are always dropped — a denied tag takes its subtree with it); allow-listed
+  tags survive as real elements.
 - Headings get anchors: `<h2 id="…">`; id = lowercased, punctuation stripped, spaces → `-`,
   Unicode letters kept; duplicates get `-1` / `-2`.
 - Code blocks: `<pre><code class="language-<lang>">…</code></pre>`; with Prism spans when the
-  language is recognized. Host CSS targets `pre > code` + `.token`.
+  language is recognized, and **exactly one trailing newline** inside `<code>`. Host CSS targets
+  `pre > code` + `.token`.
+- Task lists: `ul.contains-task-list` / `li.task-list-item[data-task="done|todo"]` with
+  **interactive** (non-`disabled`) checkboxes.
 - Languages (13): `markup` `css` `clike` `javascript` `typescript` `json` `bash` `python` `sql`
   `csharp` `yaml` `markdown` `diff` (aliases registered by Prism).
-- `marked` / `prismjs` are bundled into the core build; Prism is hooked to `globalThis.Prism` with
-  `manual = true` — it never scans the host DOM.
-- Syntax-highlight CSS belongs to the host; core ships no CSS.
+- `marked` / `prismjs` are bundled into the **render** package's build; Prism is hooked to
+  `globalThis.Prism` with `manual = true` — it never scans the host DOM.
+- The pipeline ships no CSS of its own, but the library ships **content styling** — including the
+  Prism token palette (`--ew-tok-*`) — as `@xmsbl/quilldown-render/content.css`. The editor
+  packages inline the same file (`wysiwyg`/`index.css`, `split`/`index.css`). Hosts override colors
+  via `--ew-*` / `--ew-tok-*`; do **not** ship a competing `.token` stylesheet in a layer below
+  `content` — it is silently overridden.
 - `renderDocument(md, options)` → `{ html, anchors }`: the same HTML as `renderHtml`, plus each
   top-level block's source line range.

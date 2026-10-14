@@ -1,6 +1,6 @@
 {
   "name": "quilldown",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Host-agnostic Markdown editors (wysiwyg + split) sharing one render pipeline.",
@@ -12,7 +12,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @xmsbl/quilldown-core && npm run build -w @xmsbl/quilldown-wysiwyg && npm run build -w @xmsbl/quilldown-split",
+    "build": "npm run build -w @xmsbl/quilldown-render && npm run build -w @xmsbl/quilldown-core && npm run build -w @xmsbl/quilldown-edodo && npm run build -w @xmsbl/quilldown-wysiwyg && npm run build -w @xmsbl/quilldown-split",
     "build:core": "npm run build -w @xmsbl/quilldown-core",
     "test": "vitest run",
     "typecheck": "npm run typecheck --workspaces --if-present",

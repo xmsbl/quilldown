@@ -9,8 +9,8 @@
  * 口径：
  * - `attw --profile esm-only`：三个包都是纯 ESM（`type: module` + 只有 `import` 条件），
  *   这是有意的取舍而不是缺陷（IIFE 消费者走 `unpkg` 产物，ESM 消费者本来就该用 `import`）。
- * - `--exclude-entrypoints ./index.css`：CSS 子路径没有 JS 语义，attw 对任何非 JS
- *   子路径都会报 `no-resolution` 假阳。
+ * - `--exclude-entrypoints <子路径>`：CSS 子路径没有 JS 语义，attw 对任何非 JS
+ *   子路径都会报 `no-resolution` 假阳（各包的 CSS 出口不同，见 `CSS_ENTRYPOINTS`）。
  * - **走的是 `--pack`（真 `npm pack` 后的 tarball）**，所以看到的就是发布出去的样子。
  */
 import { spawnSync } from "node:child_process";
@@ -20,7 +20,15 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const bin = (name) => path.join(root, "node_modules", ".bin", name);
 
-const PACKAGES = ["core", "wysiwyg", "split"];
+const PACKAGES = ["render", "core", "wysiwyg", "split"];
+
+/** CSS 子路径没有 JS 语义 → attw 对任何非 JS 子路径都会报 `no-resolution` 假阳，按包排除。 */
+const CSS_ENTRYPOINTS = {
+  render: ["./content.css"],
+  core: [],
+  wysiwyg: ["./index.css"],
+  split: ["./index.css"],
+};
 
 const TASKS = [
   {
@@ -29,7 +37,14 @@ const TASKS = [
   },
   {
     name: "attw",
-    args: (dir) => ["--pack", dir, "--profile", "esm-only", "--exclude-entrypoints", "./index.css"],
+    args: (dir) => {
+      const pkg = path.basename(dir);
+      const exclude = (CSS_ENTRYPOINTS[pkg] ?? []).flatMap((entry) => [
+        "--exclude-entrypoints",
+        entry,
+      ]);
+      return ["--pack", dir, "--profile", "esm-only", ...exclude];
+    },
   },
 ];
 
