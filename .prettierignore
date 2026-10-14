@@ -8,3 +8,5 @@ packages/*/vendor/
 packages/*/locales/
 # edodo fork：保持上游风格，重跑上游 diff 时更干净
 packages/edodo/
+# Nib 归档（另一仓的原件，只作史料）：保持原件字节
+docs/archive-nib/
